@@ -6,6 +6,7 @@ from app.api import (
     clusters,
     dashboard,
     hardware,
+    model,
     predictions,
     readings,
     sensors,
@@ -23,3 +24,4 @@ router.include_router(dashboard.router, prefix="/api", tags=["Dashboard"])
 router.include_router(clusters.router, prefix="/api", tags=["Clusters"])
 router.include_router(hardware.router, prefix="/api", tags=["Hardware"])
 router.include_router(sensors.router, prefix="/api", tags=["Sensors"])
+router.include_router(model.router, prefix="/api", tags=["Model"])

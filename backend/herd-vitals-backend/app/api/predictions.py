@@ -1,103 +1,112 @@
 from datetime import date
 import json
+import logging
 import traceback
 
 import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
 
+from app.api.alerts import create_high_risk_alert
 from app.core.database import supabase
 from app.services.ml_service import get_or_train_model, heuristic_fallback
-from app.api.alerts import create_high_risk_alert
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+# Two sensor rows (EC and TEMP) are recorded at each sample. With the current
+# four-samples-per-day simulator this covers 20 days and safely includes the
+# complete 14-day prediction window.
+PREDICTION_READING_LIMIT = 160
+
+
+def _fetch_recent_readings(animal_id: str) -> pd.DataFrame:
+    response = (
+        supabase.table("sensor_readings")
+        .select("sensor_type, value, reading_time, is_simulated")
+        .eq("animal_id", animal_id)
+        .order("reading_time", desc=True)
+        .limit(PREDICTION_READING_LIMIT)
+        .execute()
+    )
+
+    readings = pd.DataFrame(response.data or [])
+    if readings.empty:
+        return readings
+
+    readings["reading_time"] = pd.to_datetime(
+        readings["reading_time"], errors="coerce", utc=True
+    )
+    readings = readings.dropna(subset=["reading_time"])
+    return readings.sort_values("reading_time").reset_index(drop=True)
+
+
+def _compute_prediction(animal_id: str) -> dict:
+    try:
+        readings = _fetch_recent_readings(animal_id)
+    except Exception as exc:
+        logger.exception("Could not fetch sensor readings for %s: %s", animal_id, exc)
+        readings = pd.DataFrame()
+
+    model = get_or_train_model()
+    try:
+        prediction = model.predict_risk(animal_id, readings)
+    except Exception as exc:
+        logger.exception("Model prediction failed for %s: %s", animal_id, exc)
+        prediction = heuristic_fallback(animal_id, readings)
+
+    if not isinstance(prediction, dict):
+        prediction = heuristic_fallback(animal_id, readings)
+
+    if readings.empty or "is_simulated" not in readings.columns:
+        data_source = "unavailable"
+    elif bool(readings["is_simulated"].fillna(False).all()):
+        data_source = "simulated"
+    else:
+        data_source = "live"
+
+    prediction["data_source"] = data_source
+    prediction.setdefault("model_mode", "heuristic")
+    return prediction
 
 
 def _save_prediction(animal_id: str, prediction: dict) -> None:
-    category = prediction.get("category") or "NONE"
-    base = {
+    category = str(prediction.get("category") or "NONE").upper()
+    model_mode = str(prediction.get("model_mode") or "heuristic")
+    payload = {
         "animal_id": animal_id,
         "prediction_date": date.today().isoformat(),
         "risk_7day": prediction.get("risk_7day", 0),
         "risk_14day": prediction.get("risk_14day", 0),
-        "is_simulated": True,
+        "risk_category": category,
+        "model_version": f"v1.1-{model_mode.replace('_', '-')}",
+        "feature_importance": json.dumps(prediction.get("factors", {})),
+        "is_simulated": prediction.get("data_source") != "live",
     }
-    attempts = [
-        {
-            **base,
-            "risk_category": category,
-            "risk_level": category,
-            "model_version": prediction.get("note") and "v1.0-heuristic" or "v1.0",
-            "feature_importance": json.dumps(prediction.get("factors", {})),
-        },
-        {
-            **base,
-            "risk_category": category,
-            "feature_importance": json.dumps(prediction.get("factors", {})),
-        },
-        {
-            **base,
-            "risk_level": category,
-        },
-        base,
-    ]
-    for payload in attempts:
-        try:
-            supabase.table("predictions").insert(payload).execute()
-            return
-        except Exception as exc:
-            last_error = exc
-    print(f"⚠️ Could not save prediction: {last_error}")
+    supabase.table("predictions").insert(payload).execute()
+
+
+@router.get("/predict/{animal_id}")
+async def preview_risk(animal_id: str):
+    """Compute current risk without writing prediction or alert rows."""
+    return _compute_prediction(animal_id)
 
 
 @router.post("/predict/{animal_id}")
-async def predict_risk(animal_id: str):
-    """
-    Always returns a prediction payload. Model column mismatches
-    fall back to the heuristic so the UI never receives a 500.
-    """
+async def recompute_risk(animal_id: str):
+    """Compute and persist a prediction after an explicit user action."""
+    prediction = _compute_prediction(animal_id)
+
     try:
-        print(f"🔍 Predicting for animal: {animal_id}")
-        model = get_or_train_model()
-
-        response = (
-            supabase.table("sensor_readings")
-            .select("sensor_type, value, reading_time")
-            .eq("animal_id", animal_id)
-            .order("reading_time", desc=False)
-            .limit(100)
-            .execute()
-        )
-
-        readings_df = pd.DataFrame(response.data or [])
-        if readings_df.empty:
-            prediction = heuristic_fallback(animal_id, readings_df)
-        else:
-            try:
-                prediction = model.predict_risk(animal_id, readings_df)
-            except Exception as exc:
-                print(f"⚠️ Model predict failed, using heuristic: {exc}")
-                traceback.print_exc()
-                prediction = heuristic_fallback(animal_id, readings_df)
-
-        if not isinstance(prediction, dict):
-            prediction = heuristic_fallback(animal_id, readings_df)
-
         _save_prediction(animal_id, prediction)
+    except Exception as exc:
+        logger.exception("Could not save prediction for %s: %s", animal_id, exc)
+        raise HTTPException(status_code=502, detail="Prediction was computed but could not be saved") from exc
 
-        if str(prediction.get("category", "")).upper() == "HIGH":
-            create_high_risk_alert(animal_id, prediction)
+    if str(prediction.get("category", "")).upper() == "HIGH":
+        create_high_risk_alert(animal_id, prediction)
 
-        return prediction
-
-    except Exception as e:
-        print(f"❌ Prediction error: {str(e)}")
-        traceback.print_exc()
-        fallback = heuristic_fallback(animal_id, pd.DataFrame())
-        try:
-            _save_prediction(animal_id, fallback)
-        except Exception:
-            pass
-        return fallback
+    prediction["persisted"] = True
+    return prediction
 
 
 @router.get("/predictions")
@@ -107,41 +116,50 @@ async def list_predictions(limit: int = Query(500, ge=1, le=5000)):
             supabase.table("predictions")
             .select("*")
             .order("prediction_date", desc=True)
+            .order("created_at", desc=True)
             .limit(limit)
             .execute()
         )
         return response.data or []
-    except Exception as e:
-        print(f"⚠️ Could not list predictions: {e}")
-        return []
+    except Exception as exc:
+        logger.exception("Could not list predictions: %s", exc)
+        raise HTTPException(status_code=502, detail="Could not load predictions") from exc
 
 
 @router.get("/predictions/{animal_id}")
-async def get_prediction_history(animal_id: str, limit: int = Query(10)):
+async def get_prediction_history(
+    animal_id: str,
+    limit: int = Query(10, ge=1, le=100),
+):
     try:
         response = (
             supabase.table("predictions")
             .select("*")
             .eq("animal_id", animal_id)
             .order("prediction_date", desc=True)
+            .order("created_at", desc=True)
             .limit(limit)
             .execute()
         )
         history = []
-        for row in (response.data or []):
+        for row in response.data or []:
             factors = row.get("feature_importance") or row.get("factors") or {}
             if isinstance(factors, str):
                 try:
                     factors = json.loads(factors)
-                except Exception:
+                except (TypeError, ValueError):
                     factors = {}
-            history.append({
-                "prediction_date": row.get("prediction_date") or row.get("created_at"),
-                "risk_7day": row.get("risk_7day", 0),
-                "risk_14day": row.get("risk_14day", 0),
-                "risk_category": row.get("risk_category") or row.get("risk_level") or "NONE",
-                "feature_importance": factors,
-            })
+            history.append(
+                {
+                    "prediction_date": row.get("prediction_date") or row.get("created_at"),
+                    "risk_7day": row.get("risk_7day", 0),
+                    "risk_14day": row.get("risk_14day", 0),
+                    "risk_category": row.get("risk_category") or "NONE",
+                    "model_version": row.get("model_version"),
+                    "feature_importance": factors,
+                }
+            )
         return {"animal_id": animal_id, "history": history}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as exc:
+        logger.exception("Could not load prediction history for %s: %s", animal_id, exc)
+        raise HTTPException(status_code=502, detail="Could not load prediction history") from exc

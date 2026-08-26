@@ -1,36 +1,28 @@
-import threading
-import traceback
+import logging
 
 from fastapi import APIRouter, HTTPException
+from app.api.model import train_in_background
 from app.core.database import supabase
 from app.utils.data_generator import generate_cow_profile, generate_time_series
 
 router = APIRouter()
-
-
-def _train_in_background():
-    try:
-        from app.services.ml_service import risk_model
-        risk_model.train_model()
-    except Exception as exc:
-        print(f"⚠️ Background training skipped: {exc}")
-
+logger = logging.getLogger(__name__)
 
 @router.post("/simulate")
 async def simulate_herd():
     """
-    Generates 20 cows (COW-100 … COW-119) and 90 days of sensor data.
+    Generates 20 cows (COW-100 through COW-119) and 90 days of sensor data.
     """
     try:
         try:
             supabase.table("sensor_readings").delete().eq("is_simulated", True).execute()
         except Exception as exc:
-            print(f"⚠️ Could not clear simulated readings: {exc}")
+            logger.warning("Could not clear simulated readings: %s", exc)
 
         try:
             supabase.table("animals").delete().like("tag_number", "COW-%").execute()
         except Exception as exc:
-            print(f"⚠️ Could not clear simulated animals: {exc}")
+            logger.warning("Could not clear simulated animals: %s", exc)
 
         cow_profiles = [generate_cow_profile(i) for i in range(20)]
         inserted_cows = []
@@ -40,7 +32,7 @@ async def simulate_herd():
             if result.data:
                 inserted_cows.append(result.data[0])
 
-        print(f"✅ Inserted {len(inserted_cows)} cows into Supabase.")
+        logger.info("Inserted %s cows into Supabase", len(inserted_cows))
 
         all_readings = []
         for cow in inserted_cows:
@@ -55,9 +47,9 @@ async def simulate_herd():
         for i in range(0, len(all_readings), chunk_size):
             chunk = all_readings[i:i + chunk_size]
             supabase.table("sensor_readings").insert(chunk).execute()
-            print(f"Inserted {len(chunk)} readings...")
+            logger.info("Inserted %s readings", len(chunk))
 
-        threading.Thread(target=_train_in_background, daemon=True).start()
+        train_in_background()
 
         return {
             "status": "success",
@@ -76,6 +68,5 @@ async def simulate_herd():
         }
 
     except Exception as e:
-        print(f"❌ Error in /simulate: {str(e)}")
-        traceback.print_exc()
+        logger.exception("Simulation failed: %s", e)
         raise HTTPException(status_code=500, detail=str(e))

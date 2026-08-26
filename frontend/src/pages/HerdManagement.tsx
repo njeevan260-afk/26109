@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
 import { fetchAnimals, fetchPrediction } from '../lib/api';
 import { Animal, Prediction } from '../types';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Search, Filter, ChevronRight } from 'lucide-react';
-import clsx from 'clsx';
 
 type AnimalWithPred = Animal & { prediction?: Prediction };
 

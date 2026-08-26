@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { fetchAnimals, fetchPrediction, fetchRiskHistory, fetchSensorReadings, subscribeToSensors } from '../lib/api';
-import { Animal, Prediction, RiskHistory, SensorReading } from '../types';
-import { FileText, CheckCircle, Activity, ArrowUpRight, ArrowDownRight, Info } from 'lucide-react';
+import { fetchAnimals, fetchPrediction, recomputePrediction, fetchSensorReadings, subscribeToSensors } from '../lib/api';
+import { Animal, Prediction, SensorReading } from '../types';
+import { Activity, ArrowUpRight, Info, RefreshCw } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 
 export default function AnimalProfile() {
@@ -11,6 +11,8 @@ export default function AnimalProfile() {
   const [prediction, setPrediction] = useState<Prediction | null>(null);
   const [sensorData, setSensorData] = useState<SensorReading[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -55,6 +57,19 @@ export default function AnimalProfile() {
     
     return () => unsubscribe();
   }, [id]);
+
+  const handleRecompute = async () => {
+    if (!id) return;
+    setRefreshing(true);
+    setError(null);
+    try {
+      setPrediction(await recomputePrediction(id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not refresh risk');
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   if (loading) {
     return <div className="p-8 animate-pulse text-brand-text-secondary">Loading profile...</div>;
@@ -108,16 +123,32 @@ export default function AnimalProfile() {
           )}
         </div>
         <div className="flex gap-3 w-full md:w-auto">
-          <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-semibold text-brand-text-secondary hover:bg-gray-50 shadow-sm transition-colors">
-            <FileText className="w-4 h-4" />
-            Generate Report
-          </button>
-          <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-brand-navy text-white rounded-lg text-sm font-semibold hover:bg-brand-navy/90 shadow-sm transition-colors">
-            <CheckCircle className="w-4 h-4" />
-            Mark as Examined
+          <button
+            onClick={handleRecompute}
+            disabled={refreshing}
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-brand-navy text-white rounded-lg text-sm font-semibold hover:bg-brand-navy/90 shadow-sm transition-colors disabled:opacity-60"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Recomputing...' : 'Recompute Risk'}
           </button>
         </div>
       </div>
+
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-brand-red">
+          {error}
+        </div>
+      )}
+
+      {prediction && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          <Info className="h-4 w-4" />
+          <span className="font-semibold">{prediction.model_mode === 'random_forest' ? 'Prototype ML' : 'Heuristic'} mode</span>
+          <span>·</span>
+          <span>{prediction.data_source === 'live' ? 'Live sensor data' : 'Simulated sensor data'}</span>
+          {prediction.note && <span className="text-blue-700">· {prediction.note}</span>}
+        </div>
+      )}
 
       {/* Vitals Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

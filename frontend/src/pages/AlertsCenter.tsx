@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { fetchAlerts } from '../lib/api';
+import { fetchAlerts, resolveAlert } from '../lib/api';
 import { Alert } from '../types';
 import { ShieldAlert, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -9,10 +9,25 @@ import clsx from 'clsx';
 export default function AlertsCenter() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [filter, setFilter] = useState<'ALL' | 'HIGH' | 'MODERATE' | 'RESOLVED' | 'UNRESOLVED'>('ALL');
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchAlerts().then(setAlerts);
   }, []);
+
+  const handleResolve = async (alertId: string) => {
+    setResolvingId(alertId);
+    setError(null);
+    try {
+      const updated = await resolveAlert(alertId);
+      setAlerts(current => current.map(alert => alert.id === alertId ? { ...alert, ...updated } : alert));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not resolve the alert');
+    } finally {
+      setResolvingId(null);
+    }
+  };
 
   const filteredAlerts = alerts.filter(alert => {
     if (filter === 'ALL') return true;
@@ -52,6 +67,12 @@ export default function AlertsCenter() {
           </button>
         ))}
       </div>
+
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-brand-red">
+          {error}
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col min-h-[500px]">
         {filteredAlerts.length === 0 ? (
@@ -95,8 +116,12 @@ export default function AlertsCenter() {
                   
                   <div className="flex gap-2">
                     {alert.status === 'UNRESOLVED' && (
-                      <button className="px-3 py-1.5 bg-white border border-gray-200 text-brand-text-secondary text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
-                        Mark Resolved
+                      <button
+                        onClick={() => handleResolve(alert.id)}
+                        disabled={resolvingId === alert.id}
+                        className="px-3 py-1.5 bg-white border border-gray-200 text-brand-text-secondary text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50"
+                      >
+                        {resolvingId === alert.id ? 'Saving...' : 'Mark Resolved'}
                       </button>
                     )}
                     <Link to={`/animal/${alert.animal_id}`} className="px-3 py-1.5 bg-brand-navy text-white text-xs font-bold rounded-lg hover:bg-brand-navy/90 transition-colors shadow-sm">

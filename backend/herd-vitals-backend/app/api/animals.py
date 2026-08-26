@@ -1,7 +1,10 @@
+import logging
+
 from fastapi import APIRouter, HTTPException
 from app.core.database import supabase
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.get("/animals")
@@ -16,7 +19,7 @@ async def get_animals():
         )
         return response.data or []
     except Exception as e:
-        print(f"❌ Error fetching animals: {e}")
+        logger.exception("Could not fetch animals: %s", e)
         try:
             response = supabase.table("animals").select("*").execute()
             return response.data or []

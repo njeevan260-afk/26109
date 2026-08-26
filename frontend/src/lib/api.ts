@@ -16,14 +16,23 @@ export const fetchAnimals = async (): Promise<Animal[]> => {
 
 export const fetchPrediction = async (animal_id: string): Promise<Prediction | undefined> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/predict/${animal_id}`, {
-      method: 'POST'
-    });
+    const response = await fetch(`${API_BASE_URL}/api/predict/${animal_id}`);
     if (!response.ok) return undefined;
     return response.json();
   } catch (error) {
     return undefined;
   }
+};
+
+export const recomputePrediction = async (animal_id: string): Promise<Prediction> => {
+  const response = await fetch(`${API_BASE_URL}/api/predict/${animal_id}`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.detail || 'Could not save the refreshed prediction');
+  }
+  return response.json();
 };
 
 export const fetchRiskHistory = async (animal_id: string): Promise<RiskHistory> => {
@@ -54,6 +63,17 @@ export const fetchAlerts = async (): Promise<Alert[]> => {
   } catch (error) {
     return [];
   }
+};
+
+export const resolveAlert = async (alertId: string): Promise<Alert> => {
+  const response = await fetch(`${API_BASE_URL}/api/alerts/${alertId}/resolve`, {
+    method: 'PATCH',
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.detail || 'Could not resolve the alert');
+  }
+  return response.json();
 };
 
 export const fetchClusters = async (): Promise<ClusterFeatureCollection> => {
@@ -103,20 +123,13 @@ export const fetchDashboardSummary =
         `${API_BASE_URL}/api/dashboard/summary`
       );
 
-      if (!response.ok) {
-        return undefined;
-      }
+      if (!response.ok) throw new Error(`Dashboard request failed (${response.status})`);
 
       return response.json();
 
     } catch (error) {
-
-      console.error(
-        "Dashboard summary error:",
-        error
-      );
-
-      return undefined;
+      console.error("Dashboard summary error:", error);
+      throw error;
     }
   };
 // Realtime subscription placeholder - To be connected with Supabase JS Client

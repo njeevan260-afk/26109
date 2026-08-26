@@ -27,6 +27,10 @@ export interface Prediction {
     rolling_avg: number;
   };
   recommendations: string[];
+  model_mode?: "random_forest" | "heuristic" | "unavailable";
+  data_source?: "simulated" | "live" | "unavailable";
+  note?: string;
+  persisted?: boolean;
 }
 
 export interface RiskHistoryItem {
@@ -61,8 +65,10 @@ export interface HardwareStatus {
   status: "online" | "offline";
   device_id: string;
   signal_strength: number;
-  battery: number;
-  last_reading: string;
+  battery: number | null;
+  last_reading: string | null;
+  age_minutes?: number;
+  data_source?: "simulated" | "live" | "unavailable";
 }
 
 export interface ClusterFeature {

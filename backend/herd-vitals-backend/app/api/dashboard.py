@@ -1,9 +1,11 @@
 from collections import Counter
+import logging
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from app.core.database import supabase
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.get("/dashboard/summary")
@@ -17,14 +19,15 @@ async def dashboard_summary():
 
         predictions_response = (
             supabase.table("predictions")
-            .select("animal_id, prediction_date, risk_7day, risk_14day, risk_category, risk_level")
+            .select("animal_id, prediction_date, created_at, risk_7day, risk_14day, risk_category")
             .order("prediction_date", desc=True)
+            .order("created_at", desc=True)
             .execute()
         )
         predictions = predictions_response.data or []
     except Exception as exc:
-        print(f"❌ Dashboard summary error: {exc}")
-        animals, predictions, total_cows = [], [], 0
+        logger.exception("Dashboard summary query failed: %s", exc)
+        raise HTTPException(status_code=502, detail="Could not load dashboard summary") from exc
 
     latest_predictions = {}
     for prediction in predictions:
@@ -37,7 +40,6 @@ async def dashboard_summary():
     def category_of(row):
         value = str(
             row.get("risk_category")
-            or row.get("risk_level")
             or "NONE"
         ).upper()
         if value == "NORMAL":
@@ -48,7 +50,8 @@ async def dashboard_summary():
     high_risk = risk_counts.get("HIGH", 0)
     moderate_risk = risk_counts.get("MODERATE", 0)
     low_risk = risk_counts.get("LOW", 0)
-    none_risk = risk_counts.get("NONE", 0)
+    animals_without_predictions = max(0, total_cows - len(latest))
+    none_risk = risk_counts.get("NONE", 0) + animals_without_predictions
     moderate_high = high_risk + moderate_risk
 
     denominator = total_cows or len(latest) or 1
@@ -59,11 +62,16 @@ async def dashboard_summary():
     else:
         herd_risk_index = 0
 
-    history_counter = {}
+    latest_by_animal_date = {}
     for prediction in predictions:
         date = str(prediction.get("prediction_date") or "")[:10]
-        if not date:
+        animal_id = prediction.get("animal_id")
+        if not date or not animal_id:
             continue
+        latest_by_animal_date.setdefault((date, animal_id), prediction)
+
+    history_counter = {}
+    for (date, _animal_id), prediction in latest_by_animal_date.items():
         history_counter.setdefault(date, []).append(float(prediction.get("risk_7day") or 0))
 
     risk_history = []

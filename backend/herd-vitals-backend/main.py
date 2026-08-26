@@ -6,7 +6,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import router as api_router
+from app.api.model import train_in_background
 from app.core.database import supabase
+from app.services.ml_service import risk_model
 
 load_dotenv()
 
@@ -80,7 +82,10 @@ async def startup_event():
     print("POST /api/predict/{animal_id}")
     print("GET  /api/dashboard/summary")
     print("GET  /api/alerts")
+    print("GET  /api/model/status")
     print("=" * 60)
+    if not risk_model.is_trained:
+        train_in_background()
 
 
 if __name__ == "__main__":

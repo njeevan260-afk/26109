@@ -1,9 +1,11 @@
 from datetime import datetime, timezone
+import logging
 
 from fastapi import APIRouter, HTTPException
 from app.core.database import supabase
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 def _animal_tag_map():
@@ -19,7 +21,7 @@ def _animal_tag_map():
             for row in (response.data or [])
         }
     except Exception as exc:
-        print(f"[WARNING] Could not load animal tags: {exc}")
+        logger.warning("Could not load animal tags: %s", exc)
         return {}
 
 
@@ -29,6 +31,18 @@ def create_high_risk_alert(animal_id: str, prediction: dict) -> None:
     Failures are logged and never crash prediction.
     """
     try:
+        existing = (
+            supabase.table("alerts")
+            .select("id")
+            .eq("animal_id", animal_id)
+            .eq("status", "UNRESOLVED")
+            .limit(1)
+            .execute()
+        )
+        if existing.data:
+            logger.info("Skipped duplicate unresolved alert for %s", animal_id)
+            return
+
         tag = prediction.get("tag_number") or animal_id
         risk_pct = round(float(prediction.get("risk_7day") or 0) * 100)
         payload = {
@@ -42,17 +56,9 @@ def create_high_risk_alert(animal_id: str, prediction: dict) -> None:
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
         supabase.table("alerts").insert(payload).execute()
-        print(f"🚨 Alert created for {tag}")
+        logger.info("Alert created for %s", tag)
     except Exception as exc:
-        print(f"⚠️ Could not create alert: {exc}")
-        try:
-            supabase.table("alerts").insert({
-                "animal_id": animal_id,
-                "severity": "HIGH",
-                "message": f"High mastitis risk detected for {animal_id}.",
-            }).execute()
-        except Exception as retry_exc:
-            print(f"⚠️ Alert retry failed: {retry_exc}")
+        logger.exception("Could not create alert for %s: %s", animal_id, exc)
 
 
 @router.get("/alerts")
@@ -81,5 +87,24 @@ async def get_alerts():
             })
         return alerts
     except Exception as e:
-        print(f"❌ Error fetching alerts: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("Could not fetch alerts: %s", e)
+        raise HTTPException(status_code=502, detail="Could not load alerts") from e
+
+
+@router.patch("/alerts/{alert_id}/resolve")
+async def resolve_alert(alert_id: str):
+    try:
+        response = (
+            supabase.table("alerts")
+            .update({"status": "RESOLVED"})
+            .eq("id", alert_id)
+            .execute()
+        )
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Alert not found")
+        return response.data[0]
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Could not resolve alert %s: %s", alert_id, exc)
+        raise HTTPException(status_code=502, detail="Could not resolve alert") from exc

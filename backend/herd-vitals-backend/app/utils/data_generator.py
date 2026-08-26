@@ -12,7 +12,7 @@ READINGS_PER_DAY = 4  # Every 6 hours
 def generate_cow_profile(cow_index: int) -> Dict[str, Any]:
     """Generate realistic baseline EC and Temp for a cow."""
     # Holstein Friesian / Crossbreed typical ranges
-    # EC: 3.5 to 5.0 mS/cm (normal), Temp: 38.0 to 39.0 °C
+    # EC: 3.5 to 5.0 mS/cm (normal), Temp: 38.0 to 39.0 degrees C
     baseline_ec = round(random.uniform(3.8, 4.8), 2)
     baseline_temp = round(random.uniform(38.2, 38.8), 1)
     
@@ -50,7 +50,7 @@ def generate_time_series(animal_id: str, baseline_ec: float, baseline_temp: floa
             reading_time = start_date + timedelta(days=day, hours=hour)
             
             # --- EC Simulation ---
-            # Base variation (±0.3 mS/cm)
+            # Base variation (+/- 0.3 mS/cm)
             ec_noise = random.gauss(0, 0.15)
             ec_value = baseline_ec + ec_noise
             

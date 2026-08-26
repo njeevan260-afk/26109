@@ -1,7 +1,10 @@
+import logging
+
 from fastapi import APIRouter, HTTPException, Query
 from app.core.database import supabase
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.get("/sensors/{animal_id}")
@@ -23,5 +26,5 @@ async def get_sensor_readings(
         return response.data or []
 
     except Exception as e:
-        print(f"❌ Error fetching sensor readings: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("Could not fetch sensor readings: %s", e)
+        raise HTTPException(status_code=502, detail="Could not load sensor readings") from e
