@@ -1,0 +1,6 @@
+{
+  "name": "Herd Vitals",
+  "description": "AI-powered predictive mastitis monitoring platform for SIH 2026.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
