@@ -1,0 +1,6 @@
+ml/datasets/raw/
+ml/datasets/processed/
+ml/models/
+backend/herd-vitals-backend/artifacts/*.joblib
+backend/herd-vitals-backend/__pycache__/
+backend/herd-vitals-backend/**/*.pyc

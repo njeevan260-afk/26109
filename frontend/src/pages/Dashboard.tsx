@@ -562,7 +562,7 @@ export default function Dashboard() {
     },
 
     {
-      label: "High Risk (7-Day)",
+      label: "High Prototype Signal",
       value: loading
         ? "..."
         : highRiskCount,
@@ -787,7 +787,7 @@ export default function Dashboard() {
 
               <span className="w-2 h-2 rounded-full bg-brand-red" />
 
-              7-Day Risk
+              Prototype Signal
 
             </div>
 
@@ -918,7 +918,7 @@ export default function Dashboard() {
                           numericValue *
                             100
                         )}%`,
-                        "7-Day Risk",
+                        "Prototype Signal",
                       ];
                     }}
                     labelFormatter={(

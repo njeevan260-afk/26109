@@ -1,4 +1,4 @@
-import { Animal, Prediction, RiskHistory, SensorReading, HardwareStatus, ClusterFeatureCollection, Alert } from "../types";
+import { Animal, Prediction, RiskHistory, SensorReading, HardwareStatus, ClusterFeatureCollection, Alert, MastitisEvent, MastitisEventInput } from "../types";
 
 const API_BASE_URL =
   (import.meta as ImportMeta & { env?: { VITE_API_URL?: string } }).env
@@ -72,6 +72,33 @@ export const resolveAlert = async (alertId: string): Promise<Alert> => {
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
     throw new Error(payload.detail || 'Could not resolve the alert');
+  }
+  return response.json();
+};
+
+export const fetchMastitisEvents = async (): Promise<MastitisEvent[]> => {
+  const response = await fetch(`${API_BASE_URL}/api/mastitis-events?limit=100`);
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.detail || 'Could not load clinical events');
+  }
+  return response.json();
+};
+
+export const createMastitisEvent = async (
+  event: MastitisEventInput,
+): Promise<MastitisEvent> => {
+  const response = await fetch(`${API_BASE_URL}/api/mastitis-events`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(event),
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    const detail = Array.isArray(payload.detail)
+      ? payload.detail.map((item: { msg?: string }) => item.msg).filter(Boolean).join(', ')
+      : payload.detail;
+    throw new Error(detail || 'Could not save the clinical event');
   }
   return response.json();
 };

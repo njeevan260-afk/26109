@@ -14,8 +14,7 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 # Two sensor rows (EC and TEMP) are recorded at each sample. With the current
-# four-samples-per-day simulator this covers 20 days and safely includes the
-# complete 14-day prediction window.
+# four-samples-per-day simulator this covers 20 days of historical context.
 PREDICTION_READING_LIMIT = 160
 
 

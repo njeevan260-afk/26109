@@ -70,7 +70,7 @@ export default function HerdManagement() {
                 <th className="p-4">Lactation</th>
                 <th className="p-4">Latest EC</th>
                 <th className="p-4">Temperature</th>
-                <th className="p-4">7-Day Risk</th>
+                <th className="p-4">Prototype Signal</th>
                 <th className="p-4">Status</th>
                 <th className="p-4 pr-6"></th>
               </tr>

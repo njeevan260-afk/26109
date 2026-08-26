@@ -51,7 +51,7 @@ def create_high_risk_alert(animal_id: str, prediction: dict) -> None:
             "status": "UNRESOLVED",
             "message": (
                 f"{tag} classified HIGH risk "
-                f"({risk_pct}% 7-day). Inspect udder immediately."
+                f"({risk_pct}% prototype signal). Inspect the animal and confirm clinically."
             ),
             "created_at": datetime.now(timezone.utc).isoformat(),
         }

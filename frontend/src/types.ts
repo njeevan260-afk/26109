@@ -97,3 +97,40 @@ export interface Alert {
   created_at: string;
   status: "UNRESOLVED" | "RESOLVED";
 }
+
+export type MastitisEventStatus = "SUSPECTED" | "CONFIRMED" | "DISMISSED";
+export type DiagnosisMethod =
+  | "CLINICAL_EXAM"
+  | "CMT"
+  | "SCC"
+  | "CULTURE"
+  | "TREATMENT_RECORD"
+  | "OTHER";
+
+export interface MastitisEvent {
+  id: string;
+  animal_id: string;
+  event_time: string;
+  status: MastitisEventStatus;
+  diagnosis_method: DiagnosisMethod;
+  diagnosis_result?: string | null;
+  cmt_result?: string | null;
+  scc_value?: number | null;
+  clinical_signs: string[];
+  confirmed_by?: string | null;
+  notes?: string | null;
+  created_at: string;
+}
+
+export interface MastitisEventInput {
+  animal_id: string;
+  event_time: string;
+  status: MastitisEventStatus;
+  diagnosis_method: DiagnosisMethod;
+  diagnosis_result?: string;
+  cmt_result?: string;
+  scc_value?: number;
+  clinical_signs: string[];
+  confirmed_by?: string;
+  notes?: string;
+}

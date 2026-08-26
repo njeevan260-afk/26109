@@ -191,9 +191,9 @@ export default function AnimalProfile() {
           )}
         </div>
 
-        {/* 7-Day Risk */}
+        {/* Prototype signal; not yet the clinically validated forecast window. */}
         <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-          <p className="text-sm font-medium text-brand-text-secondary mb-2">7-Day Risk</p>
+          <p className="text-sm font-medium text-brand-text-secondary mb-2">Prototype Risk Signal</p>
           <div className="flex items-end gap-3">
             <h3 className="text-3xl font-bold text-brand-navy font-mono">{prediction ? Math.round(prediction.risk_7day * 100) : '-'}%</h3>
           </div>

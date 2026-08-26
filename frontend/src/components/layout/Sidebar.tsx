@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Map as MapIcon, Bell, Settings, X } from 'lucide-react';
+import { LayoutDashboard, Users, Map as MapIcon, Bell, ClipboardPlus, Settings, X } from 'lucide-react';
 import clsx from 'clsx';
 
 const navItems = [
@@ -7,6 +7,7 @@ const navItems = [
   { name: 'Herd Management', path: '/herd', icon: Users },
   { name: 'Analytics & GIS', path: '/analytics', icon: MapIcon },
   { name: 'Alerts Center', path: '/alerts', icon: Bell },
+  { name: 'Clinical Events', path: '/events', icon: ClipboardPlus },
   { name: 'Settings', path: '/settings', icon: Settings },
 ];
 
