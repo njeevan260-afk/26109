@@ -4,8 +4,10 @@ import { fetchAnimals, fetchPrediction, recomputePrediction, fetchSensorReadings
 import { Animal, Prediction, SensorReading } from '../types';
 import { Activity, ArrowUpRight, Info, RefreshCw } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
+import { useTranslation } from 'react-i18next';
 
 export default function AnimalProfile() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const [animal, setAnimal] = useState<Animal | null>(null);
   const [prediction, setPrediction] = useState<Prediction | null>(null);
@@ -72,7 +74,7 @@ export default function AnimalProfile() {
   };
 
   if (loading) {
-    return <div className="p-8 animate-pulse text-brand-text-secondary">Loading profile...</div>;
+    return <div className="p-8 animate-pulse text-brand-text-secondary">{t('loading')}...</div>;
   }
   if (!animal) {
     return <div className="p-8 text-brand-red">Animal not found.</div>;
@@ -129,7 +131,7 @@ export default function AnimalProfile() {
             className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-brand-navy text-white rounded-lg text-sm font-semibold hover:bg-brand-navy/90 shadow-sm transition-colors disabled:opacity-60"
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-            {refreshing ? 'Recomputing...' : 'Recompute Risk'}
+            {refreshing ? `${t('loading')}...` : t('refresh')}
           </button>
         </div>
       </div>
@@ -174,7 +176,7 @@ export default function AnimalProfile() {
 
         {/* Temperature */}
         <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-          <p className="text-sm font-medium text-brand-text-secondary mb-2">Temperature</p>
+          <p className="text-sm font-medium text-brand-text-secondary mb-2">{t('temperature')}</p>
           <div className="flex items-end gap-3">
             <h3 className="text-3xl font-bold text-brand-navy font-mono">{prediction?.latest_temp || animal.baseline_temp}</h3>
             <span className="text-sm text-gray-500 mb-1">°C</span>

@@ -1,6 +1,6 @@
 # HerdVitals - SIH 26109 Prototype
 
-HerdVitals is an AI/IoT prototype for early bovine mastitis risk monitoring. The current build includes a React dashboard, FastAPI backend, Supabase data layer, a validated sensor-ingestion contract, animal and herd risk views, alerts, GIS visualization, and a persisted prototype Random Forest model.
+HerdVitals is an AI/IoT prototype for early bovine mastitis risk monitoring. The current build includes a React dashboard, FastAPI backend, Supabase data layer, Supabase Auth with database-backed RBAC, a validated sensor-ingestion contract, animal and herd risk views, alerts, GIS visualization, and a persisted prototype Random Forest model.
 
 ## Current prototype status
 
@@ -15,6 +15,8 @@ HerdVitals is an AI/IoT prototype for early bovine mastitis risk monitoring. The
 - Scientific pipeline: one event-based 7-to-14-day label, leakage-safe temporal
   features, chronological evaluation, and Logistic/RF/ExtraTrees/XGBoost
   comparison are implemented separately from the live prototype model
+- Access control: Supabase email/password sessions, administrator-approved roles,
+  protected FastAPI routes, and separate role-dashboard entry points
 
 The model output must be described as a prototype risk signal, not a veterinary diagnosis or a clinically validated 7-14 day forecast.
 
@@ -29,7 +31,7 @@ venv\Scripts\python.exe main.py
 Required backend environment variables:
 
 - `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY` or `SUPABASE_KEY`
+- `SUPABASE_SECRET_KEY` (preferred) or the legacy `SUPABASE_SERVICE_ROLE_KEY`
 - `DEVICE_INGESTION_KEY` for authenticated hardware ingestion
 
 The API and Swagger documentation run at `http://127.0.0.1:8000` and `http://127.0.0.1:8000/docs`.
@@ -42,7 +44,36 @@ npm install
 npm run dev
 ```
 
-Set `VITE_API_URL=http://127.0.0.1:8000` if the backend is not using the default URL.
+Copy `frontend/.env.example` to `frontend/.env` and set:
+
+- `VITE_API_URL=http://127.0.0.1:8000`
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY` (the public browser key, never the service-role key)
+
+## Enable authentication and RBAC
+
+1. Apply the migrations in `supabase/migrations/` in timestamp order in the
+   Supabase SQL editor. The two `add_admin_*` migrations must be run separately
+   and in order because PostgreSQL commits new enum values between migrations.
+2. In Supabase, open **Authentication > Hooks > Custom Access Token** and
+   select `public.custom_access_token_hook`.
+3. Create normal accounts through `/register`. Dairy farmers are activated
+   automatically after Auth signup/email confirmation. Veterinarians, dairy
+   cooperatives, and animal-health authorities enter the admin waiting list.
+4. In **Authentication > Users > Add user**, create `njeevan260@gmail.com` and
+   set its password. Do not insert passwords directly into `auth.users`.
+5. Run `supabase/bootstrap_admin.sql` in the SQL editor to assign the protected
+   `ADMIN` role to that existing Auth user.
+6. Sign in as the admin and use `/portal/admin` to approve or reject waiting
+   applications. Supabase Realtime refreshes the queue; a 30-second polling
+   fallback covers temporary channel interruptions.
+
+`ADMIN` is deliberately absent from public registration and the approval API
+cannot modify another administrator. Role changes are server-controlled.
+
+Role approval and API permissions are server-controlled. The current RBAC is
+application-wide; farm/cooperative tenant membership and row ownership must be
+added before a production multi-organization deployment.
 
 ## Important API flows
 
@@ -55,6 +86,8 @@ Set `VITE_API_URL=http://127.0.0.1:8000` if the backend is not using the default
 - `GET /api/mastitis-events` - list confirmed/suspected event ground truth
 - `POST /api/mastitis-events` - record a validated diagnostic event (migration required)
 - `PATCH /api/alerts/{alert_id}/resolve` - resolve an alert
+- `GET /api/admin/role-requests` - list governed accounts (admin only)
+- `PATCH /api/admin/role-requests/{user_id}` - approve/reject a request (admin only)
 
 Example hardware payload:
 

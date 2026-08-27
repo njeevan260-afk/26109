@@ -1,27 +1,31 @@
 from datetime import datetime, timezone
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from app.core.auth import AuthPrincipal, require_permissions
 from app.core.database import supabase
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-def _animal_tag_map():
+def _animal_details_map():
     try:
         response = (
             supabase
             .table("animals")
-            .select("id, tag_number")
+            .select("id, tag_number, breed")
             .execute()
         )
         return {
-            str(row.get("id")): row.get("tag_number") or str(row.get("id"))
+            str(row.get("id")): {
+                "tag_number": row.get("tag_number") or str(row.get("id")),
+                "breed": row.get("breed") or "Breed unavailable",
+            }
             for row in (response.data or [])
         }
     except Exception as exc:
-        logger.warning("Could not load animal tags: %s", exc)
+        logger.warning("Could not load animal details: %s", exc)
         return {}
 
 
@@ -72,14 +76,22 @@ async def get_alerts():
             .limit(100)
             .execute()
         )
-        tags = _animal_tag_map()
+        animal_details = _animal_details_map()
         alerts = []
         for alert in (response.data or []):
             animal_id = str(alert.get("animal_id") or "Unknown")
+            details = animal_details.get(animal_id, {})
             alerts.append({
                 **alert,
                 "animal_id": animal_id,
-                "tag_number": tags.get(animal_id, alert.get("tag_number") or animal_id),
+                "tag_number": details.get(
+                    "tag_number",
+                    alert.get("tag_number") or animal_id,
+                ),
+                "breed": details.get(
+                    "breed",
+                    alert.get("breed") or "Breed unavailable",
+                ),
                 "severity": str(alert.get("severity") or "MODERATE").upper(),
                 "status": str(alert.get("status") or "UNRESOLVED").upper(),
                 "message": alert.get("message") or "Mastitis risk detected.",
@@ -92,7 +104,10 @@ async def get_alerts():
 
 
 @router.patch("/alerts/{alert_id}/resolve")
-async def resolve_alert(alert_id: str):
+async def resolve_alert(
+    alert_id: str,
+    _principal: AuthPrincipal = Depends(require_permissions("alerts.manage")),
+):
     try:
         response = (
             supabase.table("alerts")

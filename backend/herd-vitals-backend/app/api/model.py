@@ -1,8 +1,9 @@
 import logging
 import threading
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from app.core.auth import AuthPrincipal, require_permissions
 from app.services.ml_service import risk_model
 
 router = APIRouter()
@@ -37,7 +38,9 @@ async def model_status():
 
 
 @router.post("/model/train", status_code=202)
-async def train_model():
+async def train_model(
+    _principal: AuthPrincipal = Depends(require_permissions("model.manage")),
+):
     started = train_in_background()
     return {
         "status": "started" if started else "already_running",

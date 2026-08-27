@@ -33,6 +33,7 @@ import {
 } from "recharts";
 
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 import {
   Alert,
@@ -188,6 +189,7 @@ function formatDateTime(value: string): string {
 ========================================================= */
 
 export default function Dashboard() {
+  const { t } = useTranslation();
   const [summary, setSummary] =
     useState<DashboardSummary | null>(null);
 
@@ -552,7 +554,7 @@ export default function Dashboard() {
 
   const kpis = [
     {
-      label: "Total Cows",
+      label: t("totalCows"),
       value: loading
         ? "..."
         : totalCows,
@@ -562,7 +564,7 @@ export default function Dashboard() {
     },
 
     {
-      label: "High Prototype Signal",
+      label: t("highRisk"),
       value: loading
         ? "..."
         : highRiskCount,
@@ -584,7 +586,7 @@ export default function Dashboard() {
     },
 
     {
-      label: "Herd Risk Index",
+      label: t("herdRiskIndex"),
       value: loading
         ? "..."
         : formatPercentage(
@@ -647,7 +649,7 @@ export default function Dashboard() {
             />
 
             <span className="text-sm font-medium">
-              Refresh
+              {t("refresh")}
             </span>
           </button>
 
@@ -798,7 +800,7 @@ export default function Dashboard() {
             {loading ? (
 
               <div className="h-full flex items-center justify-center text-gray-400">
-                Loading herd trend...
+                {t("loading")}...
               </div>
 
             ) : herdRiskHistory.length === 0 ? (
@@ -964,7 +966,7 @@ export default function Dashboard() {
             {loading ? (
 
               <div className="h-full flex items-center justify-center text-gray-400">
-                Loading...
+                {t("loading")}...
               </div>
 
             ) : totalCows === 0 ? (
@@ -1229,7 +1231,7 @@ export default function Dashboard() {
               <Bell className="w-5 h-5 text-brand-red" />
 
               <h2 className="text-lg font-bold text-brand-navy">
-                Live Alerts
+                {t("liveAlerts")}
               </h2>
 
               {activeAlerts.length >
@@ -1257,7 +1259,7 @@ export default function Dashboard() {
             {loading ? (
 
               <div className="py-10 text-center text-gray-400 text-sm">
-                Loading alerts...
+                {t("loading")}...
               </div>
 
             ) : displayedAlerts.length ===
@@ -1268,7 +1270,7 @@ export default function Dashboard() {
                 <Bell className="w-8 h-8 mb-2 opacity-40" />
 
                 <span className="text-sm">
-                  No active alerts.
+                  {t("noData")}
                 </span>
 
               </div>
@@ -1308,9 +1310,7 @@ export default function Dashboard() {
                             to={`/animal/${alert.animal_id}`}
                             className="font-bold text-brand-navy text-sm hover:underline"
                           >
-                            {
-                              alert.animal_id
-                            }
+                            {alert.tag_number || alert.animal_id} ({alert.breed || t("noData")})
                           </Link>
 
                           <span className="text-xs text-gray-400 whitespace-nowrap">

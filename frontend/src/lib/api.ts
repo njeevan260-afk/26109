@@ -1,12 +1,23 @@
-import { Animal, Prediction, RiskHistory, SensorReading, HardwareStatus, ClusterFeatureCollection, Alert, MastitisEvent, MastitisEventInput } from "../types";
+import { Animal, Prediction, RiskHistory, SensorReading, HardwareStatus, ClusterFeatureCollection, Alert, MastitisEvent, MastitisEventInput, AdminDecision, AdminRoleRequest } from "../types";
+import { getAccessToken, supabase } from './supabase';
 
 const API_BASE_URL =
   (import.meta as ImportMeta & { env?: { VITE_API_URL?: string } }).env
     ?.VITE_API_URL || "http://localhost:8000";
 
+export async function apiFetch(
+  path: string,
+  init: RequestInit = {},
+): Promise<Response> {
+  const accessToken = await getAccessToken();
+  const headers = new Headers(init.headers);
+  if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`);
+  return fetch(`${API_BASE_URL}${path}`, { ...init, headers });
+}
+
 export const fetchAnimals = async (): Promise<Animal[]> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/animals`);
+    const response = await apiFetch('/api/animals');
     if (!response.ok) return [];
     return response.json();
   } catch (error) {
@@ -16,7 +27,7 @@ export const fetchAnimals = async (): Promise<Animal[]> => {
 
 export const fetchPrediction = async (animal_id: string): Promise<Prediction | undefined> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/predict/${animal_id}`);
+    const response = await apiFetch(`/api/predict/${animal_id}`);
     if (!response.ok) return undefined;
     return response.json();
   } catch (error) {
@@ -25,7 +36,7 @@ export const fetchPrediction = async (animal_id: string): Promise<Prediction | u
 };
 
 export const recomputePrediction = async (animal_id: string): Promise<Prediction> => {
-  const response = await fetch(`${API_BASE_URL}/api/predict/${animal_id}`, {
+  const response = await apiFetch(`/api/predict/${animal_id}`, {
     method: 'POST',
   });
   if (!response.ok) {
@@ -37,7 +48,7 @@ export const recomputePrediction = async (animal_id: string): Promise<Prediction
 
 export const fetchRiskHistory = async (animal_id: string): Promise<RiskHistory> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/predictions/${animal_id}?limit=10`);
+    const response = await apiFetch(`/api/predictions/${animal_id}?limit=10`);
     if (!response.ok) return { animal_id, history: [] };
     return response.json();
   } catch (error) {
@@ -47,7 +58,7 @@ export const fetchRiskHistory = async (animal_id: string): Promise<RiskHistory> 
 
 export const fetchSensorReadings = async (animal_id: string): Promise<SensorReading[]> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/sensors/${animal_id}?limit=100`);
+    const response = await apiFetch(`/api/sensors/${animal_id}?limit=100`);
     if (!response.ok) return [];
     return response.json();
   } catch (error) {
@@ -55,9 +66,18 @@ export const fetchSensorReadings = async (animal_id: string): Promise<SensorRead
   }
 };
 
+export const fetchRealSensorReadings = async (limit = 500): Promise<SensorReading[]> => {
+  const response = await apiFetch(`/api/sensors/real-readings?limit=${limit}`);
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.detail || 'Could not load real sensor readings');
+  }
+  return response.json();
+};
+
 export const fetchAlerts = async (): Promise<Alert[]> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/alerts`);
+    const response = await apiFetch('/api/alerts');
     if (!response.ok) return [];
     return response.json();
   } catch (error) {
@@ -66,7 +86,7 @@ export const fetchAlerts = async (): Promise<Alert[]> => {
 };
 
 export const resolveAlert = async (alertId: string): Promise<Alert> => {
-  const response = await fetch(`${API_BASE_URL}/api/alerts/${alertId}/resolve`, {
+  const response = await apiFetch(`/api/alerts/${alertId}/resolve`, {
     method: 'PATCH',
   });
   if (!response.ok) {
@@ -77,7 +97,7 @@ export const resolveAlert = async (alertId: string): Promise<Alert> => {
 };
 
 export const fetchMastitisEvents = async (): Promise<MastitisEvent[]> => {
-  const response = await fetch(`${API_BASE_URL}/api/mastitis-events?limit=100`);
+  const response = await apiFetch('/api/mastitis-events?limit=100');
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
     throw new Error(payload.detail || 'Could not load clinical events');
@@ -88,7 +108,7 @@ export const fetchMastitisEvents = async (): Promise<MastitisEvent[]> => {
 export const createMastitisEvent = async (
   event: MastitisEventInput,
 ): Promise<MastitisEvent> => {
-  const response = await fetch(`${API_BASE_URL}/api/mastitis-events`, {
+  const response = await apiFetch('/api/mastitis-events', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(event),
@@ -105,7 +125,7 @@ export const createMastitisEvent = async (
 
 export const fetchClusters = async (): Promise<ClusterFeatureCollection> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/clusters`);
+    const response = await apiFetch('/api/clusters');
     if (!response.ok) return { type: "FeatureCollection", features: [] };
     return response.json();
   } catch (error) {
@@ -115,7 +135,7 @@ export const fetchClusters = async (): Promise<ClusterFeatureCollection> => {
 
 export const fetchHardwareStatus = async (): Promise<HardwareStatus | undefined> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/health/hardware`);
+    const response = await apiFetch('/api/health/hardware');
     if (!response.ok) return undefined;
     return response.json();
   } catch (error) {
@@ -146,9 +166,7 @@ export const fetchDashboardSummary =
 
     try {
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/dashboard/summary`
-      );
+      const response = await apiFetch('/api/dashboard/summary');
 
       if (!response.ok) throw new Error(`Dashboard request failed (${response.status})`);
 
@@ -159,6 +177,50 @@ export const fetchDashboardSummary =
       throw error;
     }
   };
+
+export const fetchAdminRoleRequests = async (): Promise<AdminRoleRequest[]> => {
+  const response = await apiFetch('/api/admin/role-requests');
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.detail || 'Could not load the role approval queue');
+  }
+  return response.json();
+};
+
+export const decideAdminRoleRequest = async (
+  userId: string,
+  decision: AdminDecision,
+): Promise<AdminRoleRequest> => {
+  const response = await apiFetch(`/api/admin/role-requests/${userId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ decision }),
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.detail || 'Could not process the role request');
+  }
+  return response.json();
+};
+
+export const subscribeToAdminRoleRequests = (
+  onChange: () => void,
+  onStatus: (status: string) => void,
+) => {
+  if (!supabase) return () => undefined;
+  const channel = supabase
+    .channel('admin-role-request-updates')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'user_roles' },
+      () => onChange(),
+    )
+    .subscribe(status => onStatus(status));
+
+  return () => {
+    void supabase.removeChannel(channel);
+  };
+};
 // Realtime subscription placeholder - To be connected with Supabase JS Client
 export const subscribeToSensors = (callback: (reading: SensorReading) => void) => {
   console.log("subscribeToSensors: Waiting for Supabase client implementation.");

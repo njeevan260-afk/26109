@@ -1,5 +1,9 @@
-import { Search, Bell, Menu, Activity } from 'lucide-react';
+import { Search, Bell, Menu, LogOut, Radio } from 'lucide-react';
 import { HardwareStatus } from '../../types';
+import { useAuth } from '../../auth/AuthContext';
+import { useTranslation } from 'react-i18next';
+import { languageOptions } from '../../i18n/resources';
+import { NavLink, useNavigate } from 'react-router-dom';
 
 interface TopbarProps {
   hardware?: HardwareStatus;
@@ -7,6 +11,15 @@ interface TopbarProps {
 }
 
 export default function Topbar({ hardware, onMenuClick }: TopbarProps) {
+  const { identity, signOut } = useAuth();
+  const { i18n } = useTranslation();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/', { replace: true });
+  };
+
   return (
     <header className="h-16 bg-white border-b border-gray-200 px-4 md:px-8 flex items-center justify-between sticky top-0 z-20">
       
@@ -29,7 +42,22 @@ export default function Topbar({ hardware, onMenuClick }: TopbarProps) {
       </div>
 
       {/* Right Section */}
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-3 md:gap-6">
+
+        <NavLink
+          to="/real-readings"
+          aria-label="Open real hardware readings"
+          className={({ isActive }) =>
+            `inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
+              isActive
+                ? 'border-brand-teal bg-brand-teal text-white'
+                : 'border-brand-teal/30 bg-brand-teal/5 text-brand-navy hover:bg-brand-teal/10'
+            }`
+          }
+        >
+          <Radio className="h-4 w-4" />
+          <span className="hidden xl:inline">Real Readings</span>
+        </NavLink>
         
         {/* Hardware Status */}
         {hardware && (
@@ -40,13 +68,19 @@ export default function Topbar({ hardware, onMenuClick }: TopbarProps) {
         )}
 
         {/* Language */}
-        <div className="hidden md:flex text-sm font-medium text-gray-500 gap-2 border-l border-r border-gray-200 px-4">
-          <button className="text-brand-navy font-bold">EN</button>
-          <span>|</span>
-          <button className="hover:text-brand-navy">HI</button>
-          <span>|</span>
-          <button className="hover:text-brand-navy">KN</button>
-        </div>
+        <label className="flex items-center border-gray-200 md:border-l md:border-r md:px-4">
+          <span className="sr-only">Choose language</span>
+          <select
+            aria-label="Choose language"
+            value={i18n.resolvedLanguage || i18n.language}
+            onChange={event => void i18n.changeLanguage(event.target.value)}
+            className="max-w-28 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-sm font-semibold text-brand-navy outline-none focus:ring-2 focus:ring-brand-teal/50 md:max-w-40"
+          >
+            {languageOptions.map(language => (
+              <option key={language.code} value={language.code}>{language.name}</option>
+            ))}
+          </select>
+        </label>
 
         {/* Notifications */}
         <button className="relative text-gray-500 hover:text-brand-navy transition-colors">
@@ -54,6 +88,20 @@ export default function Topbar({ hardware, onMenuClick }: TopbarProps) {
           <span className="absolute -top-1 -right-1 w-4 h-4 bg-brand-red text-white text-[10px] font-bold rounded-full flex items-center justify-center">
             5
           </span>
+        </button>
+
+        <div className="hidden lg:block text-right text-xs">
+          <p className="font-bold text-brand-navy">{identity?.display_name || identity?.email || 'Signed in'}</p>
+          <p className="text-brand-text-secondary">{identity?.role?.replaceAll('_', ' ')}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => void handleSignOut()}
+          aria-label="Sign out"
+          title="Sign out"
+          className="text-gray-500 transition-colors hover:text-brand-red"
+        >
+          <LogOut className="h-5 w-5" />
         </button>
 
       </div>

@@ -3,10 +3,12 @@ import { fetchAnimals, fetchPrediction } from '../lib/api';
 import { Animal, Prediction } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { Search, Filter, ChevronRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 type AnimalWithPred = Animal & { prediction?: Prediction };
 
 export default function HerdManagement() {
+  const { t } = useTranslation();
   const [animals, setAnimals] = useState<AnimalWithPred[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -41,7 +43,7 @@ export default function HerdManagement() {
     <div className="max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-brand-navy">Herd Management</h1>
+          <h1 className="text-2xl font-bold text-brand-navy">{t('herdManagement')}</h1>
           <p className="text-brand-text-secondary mt-1">Manage and monitor individual animal health</p>
         </div>
         
@@ -66,10 +68,10 @@ export default function HerdManagement() {
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100 text-xs uppercase tracking-wider text-brand-text-secondary font-semibold">
                 <th className="p-4 pl-6">Animal</th>
-                <th className="p-4">Breed</th>
+                <th className="p-4">{t('breed')}</th>
                 <th className="p-4">Lactation</th>
                 <th className="p-4">Latest EC</th>
-                <th className="p-4">Temperature</th>
+                <th className="p-4">{t('temperature')}</th>
                 <th className="p-4">Prototype Signal</th>
                 <th className="p-4">Status</th>
                 <th className="p-4 pr-6"></th>
@@ -120,7 +122,7 @@ export default function HerdManagement() {
         </div>
         {!loading && animals.length === 0 && (
           <div className="p-12 text-center text-gray-500">
-            No animals found. Add animals or run the simulator to populate your herd.
+            {t('noData')}
           </div>
         )}
       </div>

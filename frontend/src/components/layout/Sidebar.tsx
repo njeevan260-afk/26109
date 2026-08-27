@@ -1,18 +1,31 @@
 import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Users, Map as MapIcon, Bell, ClipboardPlus, Settings, X } from 'lucide-react';
 import clsx from 'clsx';
+import { useAuth } from '../../auth/AuthContext';
+import { useTranslation } from 'react-i18next';
+import { getDashboardPath } from '../../auth/dashboardPath';
 
-const navItems = [
-  { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-  { name: 'Herd Management', path: '/herd', icon: Users },
-  { name: 'Analytics & GIS', path: '/analytics', icon: MapIcon },
-  { name: 'Alerts Center', path: '/alerts', icon: Bell },
-  { name: 'Clinical Events', path: '/events', icon: ClipboardPlus },
-  { name: 'Settings', path: '/settings', icon: Settings },
-];
+const roleLabels = {
+  ADMIN: 'Administrator',
+  DAIRY_FARMER: 'Dairy farmer',
+  VETERINARIAN: 'Veterinarian',
+  DAIRY_COOPERATIVE: 'Dairy cooperative',
+  ANIMAL_HEALTH_AUTHORITY: 'Animal health authority',
+};
 
 export default function Sidebar({ isMobileOpen, onClose }: { isMobileOpen?: boolean, onClose?: () => void }) {
   const location = useLocation();
+  const { identity, hasPermission } = useAuth();
+  const { t, i18n } = useTranslation();
+  const isRtl = i18n.dir() === 'rtl';
+  const navItems = [
+    { name: identity?.role === 'ADMIN' ? 'Admin Control Centre' : t('dashboard'), path: getDashboardPath(identity), icon: LayoutDashboard, visible: true },
+    { name: t('herdManagement'), path: '/herd', icon: Users, visible: hasPermission('animals.read') },
+    { name: t('analyticsGIS'), path: '/analytics', icon: MapIcon, visible: hasPermission('clusters.read') },
+    { name: t('alertsCenter'), path: '/alerts', icon: Bell, visible: hasPermission('alerts.read') },
+    { name: t('clinicalEvents'), path: '/events', icon: ClipboardPlus, visible: hasPermission('events.read') },
+    { name: t('settings'), path: '/settings', icon: Settings, visible: true },
+  ].filter(item => item.visible);
 
   return (
     <>
@@ -25,8 +38,9 @@ export default function Sidebar({ isMobileOpen, onClose }: { isMobileOpen?: bool
       )}
       
       <div className={clsx(
-        "fixed inset-y-0 left-0 z-50 md:relative md:flex flex-col w-64 bg-brand-navy text-white min-h-screen transition-transform transform md:translate-x-0",
-        isMobileOpen ? "translate-x-0" : "-translate-x-full"
+        "fixed inset-y-0 z-50 md:relative md:flex flex-col w-64 bg-brand-navy text-white min-h-screen transition-transform transform md:translate-x-0",
+        isRtl ? "right-0" : "left-0",
+        isMobileOpen ? "translate-x-0" : isRtl ? "translate-x-full" : "-translate-x-full"
       )}>
         <div className="flex items-center justify-between gap-3 px-6 py-5 border-b border-white/10">
           <div className="flex items-center gap-3">
@@ -45,7 +59,7 @@ export default function Sidebar({ isMobileOpen, onClose }: { isMobileOpen?: bool
             
             return (
               <Link
-                key={item.name}
+                key={item.path}
                 to={item.path}
                 className={clsx(
                   "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors font-medium text-sm",
@@ -62,7 +76,8 @@ export default function Sidebar({ isMobileOpen, onClose }: { isMobileOpen?: bool
         </nav>
         
         <div className="p-4 border-t border-white/10 text-xs text-gray-400">
-          SIH 2026 Prediction Engine
+          <p className="font-semibold text-gray-200">{identity?.role ? roleLabels[identity.role] : 'Approved user'}</p>
+          <p className="mt-1">SIH 2026 Prediction Engine</p>
         </div>
       </div>
     </>

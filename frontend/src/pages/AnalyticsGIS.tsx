@@ -5,6 +5,7 @@ import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Link } from 'react-router-dom';
 import L from 'leaflet';
+import { useTranslation } from 'react-i18next';
 
 // Fix leaflet default icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -15,6 +16,7 @@ L.Icon.Default.mergeOptions({
 });
 
 export default function AnalyticsGIS() {
+  const { t } = useTranslation();
   const [clusters, setClusters] = useState<ClusterFeatureCollection | null>(null);
   const [activeCluster, setActiveCluster] = useState<ClusterFeature | null>(null);
 
@@ -32,7 +34,7 @@ export default function AnalyticsGIS() {
     <div className="max-w-7xl mx-auto h-[calc(100vh-8rem)] flex flex-col space-y-6">
       
       <div>
-        <h1 className="text-2xl font-bold text-brand-navy">Outbreak Map & GIS</h1>
+        <h1 className="text-2xl font-bold text-brand-navy">{t('analyticsGIS')}</h1>
         <p className="text-brand-text-secondary mt-1">Geospatial cluster analysis of herd risk levels</p>
       </div>
 
@@ -109,13 +111,13 @@ export default function AnalyticsGIS() {
                       >
                         <div className="flex justify-between items-center">
                           <span className="font-bold text-brand-navy">{cow}</span>
-                          <span className="text-brand-teal text-sm font-medium">View Profile &rarr;</span>
+                          <span className="text-brand-teal text-sm font-medium">{t('viewAnimal')} &rarr;</span>
                         </div>
                       </Link>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500 italic">No high-risk animals in this cluster.</p>
+                  <p className="text-sm text-gray-500 italic">{t('noData')}</p>
                 )}
               </div>
               

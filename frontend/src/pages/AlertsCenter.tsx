@@ -5,8 +5,10 @@ import { ShieldAlert, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import clsx from 'clsx';
+import { useTranslation } from 'react-i18next';
 
 export default function AlertsCenter() {
+  const { t } = useTranslation();
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [filter, setFilter] = useState<'ALL' | 'HIGH' | 'MODERATE' | 'RESOLVED' | 'UNRESOLVED'>('ALL');
   const [resolvingId, setResolvingId] = useState<string | null>(null);
@@ -46,7 +48,7 @@ export default function AlertsCenter() {
       
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-brand-navy">Alerts Center</h1>
+          <h1 className="text-2xl font-bold text-brand-navy">{t('alertsCenter')}</h1>
           <p className="text-brand-text-secondary mt-1">Manage system alerts and veterinary notifications</p>
         </div>
       </div>
@@ -98,7 +100,7 @@ export default function AlertsCenter() {
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <Link to={`/animal/${alert.animal_id}`} className="font-bold text-brand-navy hover:underline text-lg">
-                        {alert.animal_id}
+                        {alert.tag_number || alert.animal_id} ({alert.breed || t('noData')})
                       </Link>
                       {alert.status === 'RESOLVED' && (
                         <span className="px-2 py-0.5 bg-gray-200 text-gray-600 text-xs font-bold rounded-md">RESOLVED</span>
@@ -121,11 +123,11 @@ export default function AlertsCenter() {
                         disabled={resolvingId === alert.id}
                         className="px-3 py-1.5 bg-white border border-gray-200 text-brand-text-secondary text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50"
                       >
-                        {resolvingId === alert.id ? 'Saving...' : 'Mark Resolved'}
+                        {resolvingId === alert.id ? `${t('loading')}...` : t('markResolved')}
                       </button>
                     )}
                     <Link to={`/animal/${alert.animal_id}`} className="px-3 py-1.5 bg-brand-navy text-white text-xs font-bold rounded-lg hover:bg-brand-navy/90 transition-colors shadow-sm">
-                      View Animal
+                      {t('viewAnimal')}
                     </Link>
                   </div>
                 </div>

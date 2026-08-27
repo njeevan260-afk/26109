@@ -4,8 +4,9 @@ import logging
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from app.core.auth import AuthPrincipal, require_active_user
 from app.core.database import supabase
 from app.models.mastitis_event import EventStatus, MastitisEventInput
 
@@ -56,8 +57,21 @@ async def list_mastitis_events(
 
 
 @router.post("/mastitis-events", status_code=201)
-async def create_mastitis_event(event: MastitisEventInput):
+async def create_mastitis_event(
+    event: MastitisEventInput,
+    principal: AuthPrincipal = Depends(require_active_user),
+):
     """Store one diagnostically supported event for later label construction."""
+    if "events.report" not in principal.permissions:
+        raise HTTPException(
+            status_code=403,
+            detail="Your role cannot report mastitis events",
+        )
+    if event.status.value == "CONFIRMED" and "events.confirm" not in principal.permissions:
+        raise HTTPException(
+            status_code=403,
+            detail="Only veterinarians and animal-health authorities can confirm events",
+        )
     try:
         animal = (
             supabase.table("animals")

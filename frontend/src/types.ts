@@ -59,6 +59,9 @@ export interface SensorReading {
   reading_time: string;
   is_simulated: boolean;
   device_id: string;
+  quality_flag?: string | null;
+  tag_number?: string | null;
+  breed?: string | null;
 }
 
 export interface HardwareStatus {
@@ -92,6 +95,8 @@ export interface ClusterFeatureCollection {
 export interface Alert {
   id: string;
   animal_id: string;
+  tag_number?: string;
+  breed?: string;
   severity: "MODERATE" | "HIGH";
   message: string;
   created_at: string;
@@ -134,3 +139,40 @@ export interface MastitisEventInput {
   confirmed_by?: string;
   notes?: string;
 }
+
+export type AppRole =
+  | "ADMIN"
+  | "DAIRY_FARMER"
+  | "VETERINARIAN"
+  | "DAIRY_COOPERATIVE"
+  | "ANIMAL_HEALTH_AUTHORITY";
+
+export type AccountStatus = "PENDING" | "ACTIVE" | "SUSPENDED";
+
+export interface AuthIdentity {
+  user_id: string;
+  email?: string | null;
+  display_name?: string | null;
+  organization_name?: string | null;
+  requested_role?: AppRole | null;
+  role?: AppRole | null;
+  account_status: AccountStatus;
+  permissions: string[];
+  dashboard_path: string;
+}
+
+export interface AdminRoleRequest {
+  user_id: string;
+  email?: string | null;
+  display_name?: string | null;
+  organization_name?: string | null;
+  requested_role?: AppRole | null;
+  role: AppRole;
+  status: AccountStatus;
+  assigned_by?: string | null;
+  assigned_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type AdminDecision = "APPROVE" | "REJECT";
