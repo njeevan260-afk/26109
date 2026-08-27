@@ -11,7 +11,9 @@ from app.core.database import supabase
 
 logger = logging.getLogger(__name__)
 DEFAULT_ARTIFACT_PATH = (
-    Path(__file__).resolve().parents[2] / "artifacts" / "mastitis-risk-model.joblib"
+    Path("/tmp/mastitis-risk-model.joblib")
+    if os.getenv("VERCEL")
+    else Path(__file__).resolve().parents[2] / "artifacts" / "mastitis-risk-model.joblib"
 )
 MODEL_ARTIFACT_PATH = Path(os.getenv("MODEL_ARTIFACT_PATH", str(DEFAULT_ARTIFACT_PATH)))
 

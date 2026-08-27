@@ -127,6 +127,12 @@ npm run lint
 npm run build
 ```
 
+## Vercel deployment
+
+The GitHub repository is prepared for separate Vercel frontend and backend
+projects. Follow [VERCEL_DEPLOYMENT.md](VERCEL_DEPLOYMENT.md) for project roots,
+environment variables, Supabase Auth URLs, and post-deployment checks.
+
 ## Research model benchmark
 
 The current dashboard continues to use the stable prototype model. A separate
