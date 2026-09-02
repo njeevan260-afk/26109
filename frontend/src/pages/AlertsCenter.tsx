@@ -3,12 +3,28 @@ import { fetchAlerts, resolveAlert } from '../lib/api';
 import { Alert } from '../types';
 import { ShieldAlert, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { formatDistanceToNow } from 'date-fns';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
+import { translateAlertMessage } from '../i18n/dynamicText';
+
+function formatRelativeTime(value: string, locale: string) {
+  const seconds = Math.round((new Date(value).getTime() - Date.now()) / 1000);
+  const divisions: Array<[number, Intl.RelativeTimeFormatUnit]> = [
+    [60, 'second'], [60, 'minute'], [24, 'hour'], [7, 'day'], [4.34524, 'week'], [12, 'month'], [Number.POSITIVE_INFINITY, 'year'],
+  ];
+  let duration = seconds;
+  for (const [amount, unit] of divisions) {
+    if (Math.abs(duration) < amount) {
+      return new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(Math.round(duration), unit);
+    }
+    duration /= amount;
+  }
+  return value;
+}
 
 export default function AlertsCenter() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage || i18n.language;
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [filter, setFilter] = useState<'ALL' | 'HIGH' | 'MODERATE' | 'RESOLVED' | 'UNRESOLVED'>('ALL');
   const [resolvingId, setResolvingId] = useState<string | null>(null);
@@ -25,7 +41,8 @@ export default function AlertsCenter() {
       const updated = await resolveAlert(alertId);
       setAlerts(current => current.map(alert => alert.id === alertId ? { ...alert, ...updated } : alert));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not resolve the alert');
+      console.error(err);
+      setError(t('alertsPage.resolveError'));
     } finally {
       setResolvingId(null);
     }
@@ -49,7 +66,7 @@ export default function AlertsCenter() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-brand-navy">{t('alertsCenter')}</h1>
-          <p className="text-brand-text-secondary mt-1">Manage system alerts and veterinary notifications</p>
+          <p className="text-brand-text-secondary mt-1">{t('alertsPage.subtitle')}</p>
         </div>
       </div>
 
@@ -65,7 +82,7 @@ export default function AlertsCenter() {
                 : "bg-white text-brand-text-secondary border border-gray-200 hover:bg-gray-50"
             )}
           >
-            {f === 'ALL' ? 'All Alerts' : f.charAt(0) + f.slice(1).toLowerCase()}
+            {f === 'ALL' ? t('alertsPage.allAlerts') : t(`common.${f.toLowerCase()}`)}
           </button>
         ))}
       </div>
@@ -80,8 +97,8 @@ export default function AlertsCenter() {
         {filteredAlerts.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-12 text-gray-500">
             <CheckCircle className="w-12 h-12 text-brand-teal/50 mb-4" />
-            <p className="text-lg font-medium text-brand-navy">No alerts found</p>
-            <p className="mt-1">Everything looks good for this filter.</p>
+            <p className="text-lg font-medium text-brand-navy">{t('alertsPage.noAlerts')}</p>
+            <p className="mt-1">{t('alertsPage.filterClear')}</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
@@ -103,17 +120,17 @@ export default function AlertsCenter() {
                         {alert.tag_number || alert.animal_id} ({alert.breed || t('noData')})
                       </Link>
                       {alert.status === 'RESOLVED' && (
-                        <span className="px-2 py-0.5 bg-gray-200 text-gray-600 text-xs font-bold rounded-md">RESOLVED</span>
+                        <span className="px-2 py-0.5 bg-gray-200 text-gray-600 text-xs font-bold rounded-md">{t('common.resolved')}</span>
                       )}
                     </div>
-                    <p className="text-brand-text-secondary text-sm">{alert.message}</p>
+                    <p className="text-brand-text-secondary text-sm">{translateAlertMessage(t, alert.message)}</p>
                   </div>
                 </div>
                 
                 <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-3 w-full sm:w-auto mt-2 sm:mt-0 pl-14 sm:pl-0">
                   <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
                     <Clock className="w-3.5 h-3.5" />
-                    {formatDistanceToNow(new Date(alert.created_at), { addSuffix: true })}
+                    {formatRelativeTime(alert.created_at, locale)}
                   </div>
                   
                   <div className="flex gap-2">
@@ -123,11 +140,11 @@ export default function AlertsCenter() {
                         disabled={resolvingId === alert.id}
                         className="px-3 py-1.5 bg-white border border-gray-200 text-brand-text-secondary text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50"
                       >
-                        {resolvingId === alert.id ? `${t('loading')}...` : t('markResolved')}
+                        {resolvingId === alert.id ? `${t('common.loading')}...` : t('alertsPage.markResolved')}
                       </button>
                     )}
                     <Link to={`/animal/${alert.animal_id}`} className="px-3 py-1.5 bg-brand-navy text-white text-xs font-bold rounded-lg hover:bg-brand-navy/90 transition-colors shadow-sm">
-                      {t('viewAnimal')}
+                      {t('common.viewAnimal')}
                     </Link>
                   </div>
                 </div>

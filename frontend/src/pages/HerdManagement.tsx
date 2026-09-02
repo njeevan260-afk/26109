@@ -32,10 +32,10 @@ export default function HerdManagement() {
 
   const getRiskBadge = (category?: string) => {
     switch (category) {
-      case 'HIGH': return <span className="px-2.5 py-1 bg-brand-red/10 text-brand-red text-xs font-bold rounded-md">HIGH</span>;
-      case 'MODERATE': return <span className="px-2.5 py-1 bg-brand-yellow/10 text-brand-yellow text-xs font-bold rounded-md">MODERATE</span>;
-      case 'LOW': return <span className="px-2.5 py-1 bg-brand-teal/10 text-brand-teal text-xs font-bold rounded-md">LOW</span>;
-      default: return <span className="px-2.5 py-1 bg-gray-100 text-gray-500 text-xs font-bold rounded-md">NONE</span>;
+      case 'HIGH': return <span className="px-2.5 py-1 bg-brand-red/10 text-brand-red text-xs font-bold rounded-md">{t('common.high')}</span>;
+      case 'MODERATE': return <span className="px-2.5 py-1 bg-brand-yellow/10 text-brand-yellow text-xs font-bold rounded-md">{t('common.moderate')}</span>;
+      case 'LOW': return <span className="px-2.5 py-1 bg-brand-teal/10 text-brand-teal text-xs font-bold rounded-md">{t('common.low')}</span>;
+      default: return <span className="px-2.5 py-1 bg-gray-100 text-gray-500 text-xs font-bold rounded-md">{t('common.none')}</span>;
     }
   };
 
@@ -44,7 +44,7 @@ export default function HerdManagement() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-brand-navy">{t('herdManagement')}</h1>
-          <p className="text-brand-text-secondary mt-1">Manage and monitor individual animal health</p>
+          <p className="text-brand-text-secondary mt-1">{t('herdPage.subtitle')}</p>
         </div>
         
         <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -52,11 +52,11 @@ export default function HerdManagement() {
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input 
               type="text" 
-              placeholder="Search tag number..."
+              placeholder={t('herdPage.search')}
               className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-teal/50"
             />
           </div>
-          <button className="p-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50">
+          <button type="button" aria-label={t('herdPage.filter')} title={t('herdPage.filter')} className="p-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50">
             <Filter className="w-5 h-5" />
           </button>
         </div>
@@ -67,13 +67,13 @@ export default function HerdManagement() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100 text-xs uppercase tracking-wider text-brand-text-secondary font-semibold">
-                <th className="p-4 pl-6">Animal</th>
+                <th className="p-4 pl-6">{t('common.animal')}</th>
                 <th className="p-4">{t('breed')}</th>
-                <th className="p-4">Lactation</th>
-                <th className="p-4">Latest EC</th>
+                <th className="p-4">{t('common.lactation')}</th>
+                <th className="p-4">{t('common.latestEc')}</th>
                 <th className="p-4">{t('temperature')}</th>
-                <th className="p-4">Prototype Signal</th>
-                <th className="p-4">Status</th>
+                <th className="p-4">{t('common.prototypeSignal')}</th>
+                <th className="p-4">{t('common.status')}</th>
                 <th className="p-4 pr-6"></th>
               </tr>
             </thead>
@@ -122,7 +122,7 @@ export default function HerdManagement() {
         </div>
         {!loading && animals.length === 0 && (
           <div className="p-12 text-center text-gray-500">
-            {t('noData')}
+            {t('herdPage.noAnimals')}
           </div>
         )}
       </div>

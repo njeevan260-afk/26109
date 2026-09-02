@@ -1,9 +1,13 @@
 import { Animal, Prediction, RiskHistory, SensorReading, HardwareStatus, ClusterFeatureCollection, Alert, MastitisEvent, MastitisEventInput, AdminDecision, AdminRoleRequest } from "../types";
 import { getAccessToken, supabase } from './supabase';
 
-const API_BASE_URL =
+const configuredApiUrl =
   (import.meta as ImportMeta & { env?: { VITE_API_URL?: string } }).env
-    ?.VITE_API_URL || "http://localhost:8000";
+    ?.VITE_API_URL?.trim();
+
+const API_BASE_URL = !configuredApiUrl || configuredApiUrl === 'auto'
+  ? `${window.location.protocol}//${window.location.hostname}:8000`
+  : configuredApiUrl.replace(/\/+$/, '');
 
 export async function apiFetch(
   path: string,

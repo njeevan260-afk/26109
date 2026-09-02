@@ -11,13 +11,13 @@ import {
 import { useAuth } from '../auth/AuthContext';
 import { useTranslation } from 'react-i18next';
 
-const diagnosisOptions: { value: DiagnosisMethod; label: string }[] = [
-  { value: 'CLINICAL_EXAM', label: 'Clinical examination' },
-  { value: 'CMT', label: 'California Mastitis Test (CMT)' },
-  { value: 'SCC', label: 'Somatic cell count (SCC)' },
-  { value: 'CULTURE', label: 'Milk culture' },
-  { value: 'TREATMENT_RECORD', label: 'Treatment record' },
-  { value: 'OTHER', label: 'Other evidence' },
+const diagnosisOptions: { value: DiagnosisMethod; labelKey: string }[] = [
+  { value: 'CLINICAL_EXAM', labelKey: 'clinicalPage.clinicalExam' },
+  { value: 'CMT', labelKey: 'clinicalPage.cmt' },
+  { value: 'SCC', labelKey: 'clinicalPage.scc' },
+  { value: 'CULTURE', labelKey: 'clinicalPage.milkCulture' },
+  { value: 'TREATMENT_RECORD', labelKey: 'clinicalPage.treatmentRecord' },
+  { value: 'OTHER', labelKey: 'clinicalPage.otherEvidence' },
 ];
 
 const initialLocalTime = () => {
@@ -27,7 +27,8 @@ const initialLocalTime = () => {
 };
 
 export default function ClinicalEvents() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage || i18n.language;
   const { hasPermission } = useAuth();
   const canReport = hasPermission('events.report');
   const canConfirm = hasPermission('events.confirm');
@@ -60,11 +61,12 @@ export default function ClinicalEvents() {
       setEvents(eventRows);
       setAnimalId(current => current || animalRows[0]?.id || '');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not load event data');
+      console.error(err);
+      setError(t('clinicalPage.loadError'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void loadData();
@@ -81,8 +83,8 @@ export default function ClinicalEvents() {
     setSuccess(null);
     setSaving(true);
     try {
-      if (!canReport) throw new Error('Your role has read-only access to clinical events.');
-      if (!canConfirm && status !== 'SUSPECTED') throw new Error('Your role can report suspected events only.');
+      if (!canReport) throw new Error(t('clinicalPage.readOnlyError'));
+      if (!canConfirm && status !== 'SUSPECTED') throw new Error(t('clinicalPage.suspectedOnlyError'));
       const payload: MastitisEventInput = {
         animal_id: animalId,
         event_time: new Date(eventTime).toISOString(),
@@ -100,7 +102,7 @@ export default function ClinicalEvents() {
       };
       const saved = await createMastitisEvent(payload);
       setEvents(current => [saved, ...current]);
-      setSuccess('Clinical event saved and available for future model labels.');
+      setSuccess(t('clinicalPage.saved'));
       setDiagnosisResult('');
       setCmtResult('');
       setSccValue('');
@@ -108,7 +110,7 @@ export default function ClinicalEvents() {
       setNotes('');
       setEventTime(initialLocalTime());
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save the event');
+      setError(err instanceof Error ? err.message : t('clinicalPage.saveError'));
     } finally {
       setSaving(false);
     }
@@ -119,7 +121,7 @@ export default function ClinicalEvents() {
       <div>
         <h1 className="text-2xl font-bold text-brand-navy">{t('clinicalEvents')}</h1>
         <p className="text-brand-text-secondary mt-1">
-          Record the earliest clinical onset or confirmed detection time for genuine 7-to-14-day labels.
+          {t('clinicalPage.subtitle')}
         </p>
       </div>
 
@@ -141,97 +143,97 @@ export default function ClinicalEvents() {
               <ClipboardPlus className="h-5 w-5" aria-hidden="true" />
             </div>
             <div>
-              <h2 className="font-bold text-brand-navy">New event record</h2>
-              <p className="text-sm text-brand-text-secondary">Fields marked required protect label quality.</p>
+              <h2 className="font-bold text-brand-navy">{t('clinicalPage.newRecord')}</h2>
+              <p className="text-sm text-brand-text-secondary">{t('clinicalPage.requiredHint')}</p>
             </div>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <label className="space-y-1.5 text-sm font-medium text-brand-navy">
-              Animal *
+              {t('common.animal')} *
               <select required value={animalId} onChange={event => setAnimalId(event.target.value)} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5">
                 {animals.map(animal => <option key={animal.id} value={animal.id}>{animal.tag_number}</option>)}
               </select>
             </label>
             <label className="space-y-1.5 text-sm font-medium text-brand-navy">
-              {t('firstClinicalOnset')} *
+              {t('clinicalPage.firstOnset')} *
               <input required type="datetime-local" max={initialLocalTime()} value={eventTime} onChange={event => setEventTime(event.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2.5" />
             </label>
             <label className="space-y-1.5 text-sm font-medium text-brand-navy">
-              Status *
+              {t('common.status')} *
               <select value={status} onChange={event => setStatus(event.target.value as MastitisEventStatus)} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5">
-                <option value="SUSPECTED">Suspected</option>
-                {canConfirm && <option value="CONFIRMED">Confirmed</option>}
-                {canConfirm && <option value="DISMISSED">Dismissed</option>}
+                <option value="SUSPECTED">{t('common.suspected')}</option>
+                {canConfirm && <option value="CONFIRMED">{t('common.confirmed')}</option>}
+                {canConfirm && <option value="DISMISSED">{t('common.dismissed')}</option>}
               </select>
             </label>
             <label className="space-y-1.5 text-sm font-medium text-brand-navy">
-              {t('diagnosisMethod')} *
+              {t('clinicalPage.diagnosisMethod')} *
               <select value={diagnosisMethod} onChange={event => setDiagnosisMethod(event.target.value as DiagnosisMethod)} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5">
-                {diagnosisOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                {diagnosisOptions.map(option => <option key={option.value} value={option.value}>{t(option.labelKey)}</option>)}
               </select>
             </label>
           </div>
 
           <label className="block space-y-1.5 text-sm font-medium text-brand-navy">
-            Diagnosis result {status === 'CONFIRMED' && '*'}
-            <input required={status === 'CONFIRMED'} value={diagnosisResult} onChange={event => setDiagnosisResult(event.target.value)} placeholder="e.g. clinical mastitis in right rear quarter" className="w-full rounded-lg border border-gray-200 px-3 py-2.5" />
+            {t('clinicalPage.diagnosisResult')} {status === 'CONFIRMED' && '*'}
+            <input required={status === 'CONFIRMED'} value={diagnosisResult} onChange={event => setDiagnosisResult(event.target.value)} placeholder={t('clinicalPage.diagnosisPlaceholder')} className="w-full rounded-lg border border-gray-200 px-3 py-2.5" />
           </label>
 
           <div className="grid gap-4 md:grid-cols-2">
             <label className="space-y-1.5 text-sm font-medium text-brand-navy">
-              Confirmed by {status === 'CONFIRMED' && '*'}
-              <input required={status === 'CONFIRMED'} value={confirmedBy} onChange={event => setConfirmedBy(event.target.value)} placeholder="Veterinarian or operator" className="w-full rounded-lg border border-gray-200 px-3 py-2.5" />
+              {t('clinicalPage.confirmedBy')} {status === 'CONFIRMED' && '*'}
+              <input required={status === 'CONFIRMED'} value={confirmedBy} onChange={event => setConfirmedBy(event.target.value)} placeholder={t('clinicalPage.confirmedByPlaceholder')} className="w-full rounded-lg border border-gray-200 px-3 py-2.5" />
             </label>
             {diagnosisMethod === 'CMT' && (
               <label className="space-y-1.5 text-sm font-medium text-brand-navy">
-                CMT result *
-                <input required value={cmtResult} onChange={event => setCmtResult(event.target.value)} placeholder="Negative, trace, 1+, 2+, 3+" className="w-full rounded-lg border border-gray-200 px-3 py-2.5" />
+                {t('clinicalPage.cmtResult')} *
+                <input required value={cmtResult} onChange={event => setCmtResult(event.target.value)} placeholder={t('clinicalPage.cmtPlaceholder')} className="w-full rounded-lg border border-gray-200 px-3 py-2.5" />
               </label>
             )}
             {diagnosisMethod === 'SCC' && (
               <label className="space-y-1.5 text-sm font-medium text-brand-navy">
-                SCC value (cells/mL) *
+                {t('clinicalPage.sccValue')} *
                 <input required min="0" max="100000000" type="number" value={sccValue} onChange={event => setSccValue(event.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2.5" />
               </label>
             )}
           </div>
 
           <label className="block space-y-1.5 text-sm font-medium text-brand-navy">
-            {t('clinicalSigns')}
-            <input value={clinicalSigns} onChange={event => setClinicalSigns(event.target.value)} placeholder="Comma-separated: swelling, clots, fever" className="w-full rounded-lg border border-gray-200 px-3 py-2.5" />
+            {t('clinicalPage.clinicalSigns')}
+            <input value={clinicalSigns} onChange={event => setClinicalSigns(event.target.value)} placeholder={t('clinicalPage.signsPlaceholder')} className="w-full rounded-lg border border-gray-200 px-3 py-2.5" />
           </label>
           <label className="block space-y-1.5 text-sm font-medium text-brand-navy">
-            Notes
+            {t('clinicalPage.notes')}
             <textarea rows={3} value={notes} onChange={event => setNotes(event.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2.5" />
           </label>
 
           <button disabled={saving || loading || !animalId} type="submit" className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-teal px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-brand-teal/90 disabled:cursor-not-allowed disabled:opacity-50">
             {saving && <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />}
-            {saving ? `${t('loading')}...` : t('save')}
+            {saving ? `${t('common.loading')}...` : t('clinicalPage.saveEvent')}
           </button>
         </form> : (
           <section className="rounded-2xl border border-gray-100 bg-white p-8 shadow-sm">
             <ClipboardPlus className="h-9 w-9 text-brand-teal/60" aria-hidden="true" />
-            <h2 className="mt-4 text-xl font-bold text-brand-navy">Clinical records are read-only</h2>
-            <p className="mt-2 text-brand-text-secondary">Your role can review recorded events but cannot create or confirm them.</p>
+            <h2 className="mt-4 text-xl font-bold text-brand-navy">{t('clinicalPage.readOnlyTitle')}</h2>
+            <p className="mt-2 text-brand-text-secondary">{t('clinicalPage.readOnlyBody')}</p>
           </section>
         )}
 
         <section aria-labelledby="recent-events-title" className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="border-b border-gray-100 p-5">
-            <h2 id="recent-events-title" className="font-bold text-brand-navy">{t('recentRecords')}</h2>
-            <p className="text-sm text-brand-text-secondary">{events.length} event{events.length === 1 ? '' : 's'} loaded</p>
+            <h2 id="recent-events-title" className="font-bold text-brand-navy">{t('clinicalPage.recentRecords')}</h2>
+            <p className="text-sm text-brand-text-secondary">{t('clinicalPage.eventsLoaded', { count: events.length })}</p>
           </div>
           {loading ? (
             <div className="flex items-center justify-center gap-2 p-10 text-sm text-brand-text-secondary">
-              <LoaderCircle className="h-5 w-5 animate-spin" aria-hidden="true" /> {t('loading')}
+              <LoaderCircle className="h-5 w-5 animate-spin" aria-hidden="true" /> {t('common.loading')}
             </div>
           ) : events.length === 0 ? (
             <div className="flex flex-col items-center p-10 text-center text-brand-text-secondary">
               <Stethoscope className="mb-3 h-9 w-9 text-brand-teal/60" aria-hidden="true" />
-              <p className="font-medium text-brand-navy">No clinical events yet</p>
-              <p className="mt-1 text-sm">The first saved event will appear here.</p>
+              <p className="font-medium text-brand-navy">{t('clinicalPage.noEvents')}</p>
+              <p className="mt-1 text-sm">{t('clinicalPage.firstEvent')}</p>
             </div>
           ) : (
             <div className="divide-y divide-gray-100">
@@ -239,9 +241,9 @@ export default function ClinicalEvents() {
                 <article key={event.id} className="p-5">
                   <div className="flex items-center justify-between gap-3">
                     <p className="font-bold text-brand-navy">{animalTags.get(event.animal_id) || event.animal_id}</p>
-                    <span className="rounded-full bg-brand-teal/10 px-2.5 py-1 text-xs font-bold text-brand-teal">{event.status}</span>
+                    <span className="rounded-full bg-brand-teal/10 px-2.5 py-1 text-xs font-bold text-brand-teal">{t(`common.${event.status.toLowerCase()}`)}</span>
                   </div>
-                  <p className="mt-2 text-sm text-brand-text-secondary">{event.diagnosis_method.replaceAll('_', ' ')} · {new Date(event.event_time).toLocaleString()}</p>
+                  <p className="mt-2 text-sm text-brand-text-secondary">{t(diagnosisOptions.find(option => option.value === event.diagnosis_method)?.labelKey || 'clinicalPage.otherEvidence')} · {new Date(event.event_time).toLocaleString(locale)}</p>
                   {event.diagnosis_result && <p className="mt-1 text-sm text-brand-navy">{event.diagnosis_result}</p>}
                 </article>
               ))}

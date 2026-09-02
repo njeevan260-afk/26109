@@ -55,6 +55,12 @@ const keys = ['dashboard','herdManagement','analyticsGIS','alertsCenter','clinic
 export const indianLanguagesResources = Object.fromEntries(
   Object.entries(translations).map(([code, values]) => [
     code,
-    { translation: Object.fromEntries(keys.map((key, index) => [key, values[index]])) },
+    {
+      translation: {
+        ...Object.fromEntries(keys.map((key, index) => [key, values[index]])),
+        ...(completeTranslations[code] ?? {}),
+      },
+    },
   ]),
 );
+import { completeTranslations } from './completeTranslations';

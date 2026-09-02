@@ -12,6 +12,7 @@ import {
 
 import { fetchRealSensorReadings } from '../lib/api';
 import { SensorReading } from '../types';
+import { useTranslation } from 'react-i18next';
 
 const POLL_INTERVAL_MS = 5_000;
 const ONLINE_WINDOW_MS = 15 * 60 * 1_000;
@@ -27,10 +28,10 @@ interface LatestAnimalReadings {
   temp?: SensorReading;
 }
 
-function formatReadingTime(value: string) {
+function formatReadingTime(value: string, locale: string, unknownLabel: string) {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Unknown';
-  return date.toLocaleString();
+  if (Number.isNaN(date.getTime())) return unknownLabel;
+  return date.toLocaleString(locale);
 }
 
 function isOnline(readingTime: string) {
@@ -39,6 +40,8 @@ function isOnline(readingTime: string) {
 }
 
 export default function RealReadings() {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage || i18n.language;
   const [readings, setReadings] = useState<SensorReading[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -51,12 +54,13 @@ export default function RealReadings() {
       setReadings(data.filter(reading => reading.is_simulated === false));
       setError(null);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'Could not load real readings');
+      console.error(requestError);
+      setError(t('realPage.loadError'));
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void loadReadings();
@@ -72,9 +76,9 @@ export default function RealReadings() {
       const current = grouped.get(key) ?? {
         key,
         animalId: reading.animal_id || null,
-        tagNumber: reading.tag_number || 'Unassigned animal',
+        tagNumber: reading.tag_number || t('realPage.unassignedAnimal'),
         breed: reading.breed || null,
-        deviceId: reading.device_id || 'Unknown device',
+        deviceId: reading.device_id || t('realPage.unknownDevice'),
         latestAt: reading.reading_time,
       };
 
@@ -90,7 +94,7 @@ export default function RealReadings() {
     return [...grouped.values()].sort(
       (a, b) => new Date(b.latestAt).getTime() - new Date(a.latestAt).getTime(),
     );
-  }, [readings]);
+  }, [readings, t]);
 
   const devices = useMemo(
     () => new Set(readings.map(reading => reading.device_id).filter(Boolean)),
@@ -108,11 +112,11 @@ export default function RealReadings() {
         <div>
           <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-brand-teal">
             <span className="h-2 w-2 animate-pulse rounded-full bg-brand-teal" />
-            PHYSICAL DEVICE FEED
+            {t('realPage.feed')}
           </div>
-          <h1 className="text-2xl font-bold text-brand-navy md:text-3xl">Real Hardware Readings</h1>
+          <h1 className="text-2xl font-bold text-brand-navy md:text-3xl">{t('realPage.title')}</h1>
           <p className="mt-1 text-sm text-brand-text-secondary">
-            Only non-simulated EC and temperature readings are shown here. Updates every 5 seconds.
+            {t('realPage.subtitle')}
           </p>
         </div>
         <button
@@ -122,45 +126,45 @@ export default function RealReadings() {
           className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-navy px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
         >
           <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-          Refresh now
+          {t('common.refreshNow')}
         </button>
       </section>
 
       {error && (
         <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}. The last successfully loaded readings remain visible.
+          {error}. {t('realPage.staleData')}
         </div>
       )}
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard icon={Activity} label="Real readings loaded" value={readings.length.toLocaleString()} />
-        <SummaryCard icon={Radio} label="Hardware devices" value={devices.size.toString()} />
-        <SummaryCard icon={Waves} label="Animals reporting" value={animalsReporting.toString()} />
+        <SummaryCard icon={Activity} label={t('realPage.readingsLoaded')} value={readings.length.toLocaleString(locale)} />
+        <SummaryCard icon={Radio} label={t('realPage.devices')} value={devices.size.toLocaleString(locale)} />
+        <SummaryCard icon={Waves} label={t('realPage.animalsReporting')} value={animalsReporting.toLocaleString(locale)} />
         <SummaryCard
           icon={Clock3}
-          label="Latest reading"
-          value={latestReading ? formatReadingTime(latestReading) : 'Waiting for data'}
+          label={t('realPage.latestReading')}
+          value={latestReading ? formatReadingTime(latestReading, locale, t('realPage.unknownTime')) : t('realPage.waitingData')}
           compact
         />
       </section>
 
       {loading ? (
         <div className="flex min-h-64 items-center justify-center rounded-2xl border border-gray-200 bg-white">
-          <RefreshCw className="h-7 w-7 animate-spin text-brand-teal" aria-label="Loading real readings" />
+          <RefreshCw className="h-7 w-7 animate-spin text-brand-teal" aria-label={t('realPage.loadingReadings')} />
         </div>
       ) : readings.length === 0 ? (
         <section className="rounded-2xl border border-dashed border-brand-teal/40 bg-white px-6 py-14 text-center">
           <Radio className="mx-auto h-12 w-12 text-brand-teal" />
-          <h2 className="mt-4 text-xl font-bold text-brand-navy">Waiting for the first real reading</h2>
+          <h2 className="mt-4 text-xl font-bold text-brand-navy">{t('realPage.waitingFirst')}</h2>
           <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-brand-text-secondary">
-            Send the hardware payload to <code className="rounded bg-gray-100 px-1.5 py-0.5">POST /api/readings</code> with
-            <code className="ml-1 rounded bg-gray-100 px-1.5 py-0.5">is_simulated: false</code>. Simulated cow data stays on the main dashboard.
+            {t('realPage.sendPayloadBefore')} <code className="rounded bg-gray-100 px-1.5 py-0.5">POST /api/readings</code>{' '}
+            <code className="rounded bg-gray-100 px-1.5 py-0.5">is_simulated: false</code>. {t('realPage.sendPayloadAfter')}
           </p>
         </section>
       ) : (
         <>
           <section>
-            <h2 className="mb-3 text-lg font-bold text-brand-navy">Latest by animal</h2>
+            <h2 className="mb-3 text-lg font-bold text-brand-navy">{t('realPage.latestByAnimal')}</h2>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {latestByAnimal.map(item => {
                 const online = isOnline(item.latestAt);
@@ -175,14 +179,14 @@ export default function RealReadings() {
                       </div>
                       <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${online ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
                         {online ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
-                        {online ? 'Online' : 'Offline'}
+                        {online ? t('common.online') : t('common.offline')}
                       </span>
                     </div>
                     <div className="mt-5 grid grid-cols-2 gap-3">
                       <ReadingValue icon={Waves} label="EC" reading={item.ec} />
-                      <ReadingValue icon={Thermometer} label="Temperature" reading={item.temp} />
+                      <ReadingValue icon={Thermometer} label={t('common.temperature')} reading={item.temp} />
                     </div>
-                    <p className="mt-4 text-xs text-brand-text-secondary">Last seen: {formatReadingTime(item.latestAt)}</p>
+                    <p className="mt-4 text-xs text-brand-text-secondary">{t('realPage.lastSeen', { time: formatReadingTime(item.latestAt, locale, t('realPage.unknownTime')) })}</p>
                   </article>
                 );
               })}
@@ -191,27 +195,27 @@ export default function RealReadings() {
 
           <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
             <div className="border-b border-gray-100 px-5 py-4">
-              <h2 className="font-bold text-brand-navy">Recent real readings</h2>
+              <h2 className="font-bold text-brand-navy">{t('realPage.recentReadings')}</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <caption className="sr-only">Recent readings received from physical sensors</caption>
+                <caption className="sr-only">{t('realPage.caption')}</caption>
                 <thead className="bg-gray-50 text-xs uppercase tracking-wide text-brand-text-secondary">
                   <tr>
-                    <th className="px-5 py-3">Time</th>
-                    <th className="px-5 py-3">Animal</th>
-                    <th className="px-5 py-3">Device</th>
-                    <th className="px-5 py-3">Sensor</th>
-                    <th className="px-5 py-3">Value</th>
-                    <th className="px-5 py-3">Quality</th>
+                    <th className="px-5 py-3">{t('common.time')}</th>
+                    <th className="px-5 py-3">{t('common.animal')}</th>
+                    <th className="px-5 py-3">{t('common.device')}</th>
+                    <th className="px-5 py-3">{t('common.sensor')}</th>
+                    <th className="px-5 py-3">{t('common.value')}</th>
+                    <th className="px-5 py-3">{t('common.quality')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {readings.slice(0, 100).map(reading => (
                     <tr key={reading.id} className="hover:bg-gray-50/70">
-                      <td className="whitespace-nowrap px-5 py-3 text-brand-text-secondary">{formatReadingTime(reading.reading_time)}</td>
-                      <td className="px-5 py-3 font-semibold text-brand-navy">{reading.tag_number || 'Unassigned'}</td>
-                      <td className="px-5 py-3">{reading.device_id || 'Unknown'}</td>
+                      <td className="whitespace-nowrap px-5 py-3 text-brand-text-secondary">{formatReadingTime(reading.reading_time, locale, t('realPage.unknownTime'))}</td>
+                      <td className="px-5 py-3 font-semibold text-brand-navy">{reading.tag_number || t('common.unassigned')}</td>
+                      <td className="px-5 py-3">{reading.device_id || t('common.unknown')}</td>
                       <td className="px-5 py-3">{reading.sensor_type}</td>
                       <td className="whitespace-nowrap px-5 py-3 font-bold text-brand-navy">{reading.value.toFixed(2)} {reading.unit}</td>
                       <td className="px-5 py-3">{reading.quality_flag || '—'}</td>

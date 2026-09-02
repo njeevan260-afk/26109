@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import AdminDashboard from './pages/AdminDashboard';
 import HomePage from './pages/HomePage';
 import RealReadings from './pages/RealReadings';
+import ResetPassword from './pages/ResetPassword';
 
 function App() {
   const { t } = useTranslation();
@@ -27,6 +28,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/pending" element={<PendingApproval />} />
 
           <Route element={<ProtectedRoute />}>
@@ -54,7 +56,7 @@ function App() {
               <Route element={<RequirePermission permission="events.read" />}>
                 <Route path="events" element={<ClinicalEvents />} />
               </Route>
-              <Route path="settings" element={<div className="p-8 text-center text-gray-500">{t('settings')}</div>} />
+              <Route path="settings" element={<div className="p-8 text-center text-gray-500">{t('system.settingsSoon')}</div>} />
             </Route>
           </Route>
 

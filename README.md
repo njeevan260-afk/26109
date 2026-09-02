@@ -46,7 +46,10 @@ npm run dev
 
 Copy `frontend/.env.example` to `frontend/.env` and set:
 
-- `VITE_API_URL=http://127.0.0.1:8000`
+- `VITE_API_URL=auto` in local development, so desktop and phone browsers call
+  port 8000 on the same hostname used to open the frontend
+- `VITE_PUBLIC_SITE_URL` set to the deployed frontend URL, or the computer's
+  LAN URL when testing confirmation and password-reset emails from a phone
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_PUBLISHABLE_KEY` (the public browser key, never the service-role key)
 
@@ -57,14 +60,17 @@ Copy `frontend/.env.example` to `frontend/.env` and set:
    and in order because PostgreSQL commits new enum values between migrations.
 2. In Supabase, open **Authentication > Hooks > Custom Access Token** and
    select `public.custom_access_token_hook`.
-3. Create normal accounts through `/register`. Dairy farmers are activated
+3. In **Authentication > Email Templates > Reset password**, use the contents
+   of `supabase/templates/recovery.html`. This routes the token through the app
+   before verification so email link scanners cannot consume the one-time link.
+4. Create normal accounts through `/register`. Dairy farmers are activated
    automatically after Auth signup/email confirmation. Veterinarians, dairy
    cooperatives, and animal-health authorities enter the admin waiting list.
-4. In **Authentication > Users > Add user**, create `njeevan260@gmail.com` and
+5. In **Authentication > Users > Add user**, create `njeevan260@gmail.com` and
    set its password. Do not insert passwords directly into `auth.users`.
-5. Run `supabase/bootstrap_admin.sql` in the SQL editor to assign the protected
+6. Run `supabase/bootstrap_admin.sql` in the SQL editor to assign the protected
    `ADMIN` role to that existing Auth user.
-6. Sign in as the admin and use `/portal/admin` to approve or reject waiting
+7. Sign in as the admin and use `/portal/admin` to approve or reject waiting
    applications. Supabase Realtime refreshes the queue; a 30-second polling
    fallback covers temporary channel interruptions.
 

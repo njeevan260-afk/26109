@@ -19,6 +19,7 @@ export default function AnalyticsGIS() {
   const { t } = useTranslation();
   const [clusters, setClusters] = useState<ClusterFeatureCollection | null>(null);
   const [activeCluster, setActiveCluster] = useState<ClusterFeature | null>(null);
+  const riskLabel = (risk: string) => t(`common.${risk.toLowerCase()}`, { defaultValue: risk });
 
   useEffect(() => {
     fetchClusters().then(setClusters);
@@ -35,7 +36,7 @@ export default function AnalyticsGIS() {
       
       <div>
         <h1 className="text-2xl font-bold text-brand-navy">{t('analyticsGIS')}</h1>
-        <p className="text-brand-text-secondary mt-1">Geospatial cluster analysis of herd risk levels</p>
+        <p className="text-brand-text-secondary mt-1">{t('gisPage.subtitle')}</p>
       </div>
 
       <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col lg:flex-row overflow-hidden">
@@ -70,7 +71,7 @@ export default function AnalyticsGIS() {
                 <Popup>
                   <div className="font-sans">
                     <h4 className="font-bold text-brand-navy">{feature.properties.cluster_name}</h4>
-                    <p className="text-sm text-gray-600 mt-1">{feature.properties.risk_level} RISK</p>
+                    <p className="text-sm text-gray-600 mt-1">{riskLabel(feature.properties.risk_level)} {t('gisPage.riskSuffix')}</p>
                   </div>
                 </Popup>
               </Circle>
@@ -80,27 +81,27 @@ export default function AnalyticsGIS() {
 
         {/* Side Panel */}
         <div className="w-full lg:w-96 bg-gray-50 border-t lg:border-t-0 lg:border-l border-gray-100 p-6 flex flex-col z-20 overflow-y-auto">
-          <h2 className="text-lg font-bold text-brand-navy mb-6">Cluster Analysis</h2>
+          <h2 className="text-lg font-bold text-brand-navy mb-6">{t('gisPage.clusterAnalysis')}</h2>
           
           {activeCluster ? (
             <div className="space-y-6">
               <div>
-                <p className="text-xs font-bold text-brand-text-secondary uppercase tracking-wider mb-1">Cluster Name</p>
+                <p className="text-xs font-bold text-brand-text-secondary uppercase tracking-wider mb-1">{t('gisPage.clusterName')}</p>
                 <h3 className="text-xl font-bold text-brand-navy">{activeCluster.properties.cluster_name}</h3>
               </div>
               
               <div>
-                <p className="text-xs font-bold text-brand-text-secondary uppercase tracking-wider mb-2">Risk Level</p>
+                <p className="text-xs font-bold text-brand-text-secondary uppercase tracking-wider mb-2">{t('gisPage.riskLevel')}</p>
                 <span className={`px-4 py-2 text-sm font-bold rounded-lg text-white ${
                   activeCluster.properties.risk_level === 'HIGH' ? 'bg-brand-red' : 
                   activeCluster.properties.risk_level === 'MODERATE' ? 'bg-brand-yellow' : 'bg-brand-teal'
                 }`}>
-                  {activeCluster.properties.risk_level}
+                  {riskLabel(activeCluster.properties.risk_level)}
                 </span>
               </div>
               
               <div>
-                <p className="text-xs font-bold text-brand-text-secondary uppercase tracking-wider mb-3">Affected Animals ({activeCluster.properties.affected_cows.length})</p>
+                <p className="text-xs font-bold text-brand-text-secondary uppercase tracking-wider mb-3">{t('gisPage.affectedAnimals', { count: activeCluster.properties.affected_cows.length })}</p>
                 {activeCluster.properties.affected_cows.length > 0 ? (
                   <div className="space-y-2">
                     {activeCluster.properties.affected_cows.map(cow => (
@@ -117,13 +118,13 @@ export default function AnalyticsGIS() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500 italic">{t('noData')}</p>
+                  <p className="text-sm text-gray-500 italic">{t('gisPage.noHighRisk')}</p>
                 )}
               </div>
               
               <div className="pt-6 border-t border-gray-200">
                 <button className="w-full py-3 bg-brand-navy text-white rounded-xl font-bold text-sm hover:bg-brand-navy/90 transition-colors">
-                  Generate Cluster Report
+                  {t('gisPage.generateReport')}
                 </button>
               </div>
             </div>
@@ -132,7 +133,7 @@ export default function AnalyticsGIS() {
               <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-4">
                 <span className="text-2xl">🗺️</span>
               </div>
-              <p>Select a cluster on the map to view detailed risk analysis and affected animals.</p>
+              <p>{t('gisPage.selectCluster')}</p>
             </div>
           )}
           

@@ -9,7 +9,7 @@ import {
   useState,
 } from 'react';
 import { apiFetch } from '../lib/api';
-import { supabase, supabaseConfigured } from '../lib/supabase';
+import { getAuthRedirectUrl, supabase, supabaseConfigured } from '../lib/supabase';
 import { AppRole, AuthIdentity } from '../types';
 
 interface SignUpInput {
@@ -28,6 +28,9 @@ interface AuthContextValue {
   authError: string | null;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (input: SignUpInput) => Promise<{ confirmationRequired: boolean }>;
+  requestPasswordReset: (email: string) => Promise<void>;
+  verifyPasswordRecovery: (tokenHash: string) => Promise<void>;
+  updatePassword: (password: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshIdentity: () => Promise<void>;
   hasPermission: (permission: string) => boolean;
@@ -123,6 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email: input.email,
       password: input.password,
       options: {
+        emailRedirectTo: getAuthRedirectUrl('/login'),
         data: {
           display_name: input.displayName,
           organization_name: input.organizationName,
@@ -134,6 +138,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (data.session) await applySession(data.session);
     return { confirmationRequired: !data.session };
   }, [applySession, configurationError]);
+
+  const requestPasswordReset = useCallback(async (email: string) => {
+    if (!supabase) throw new Error(configurationError || 'Supabase is unavailable');
+    const redirectTo = getAuthRedirectUrl('/reset-password');
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+    if (error) throw error;
+  }, [configurationError]);
+
+  const verifyPasswordRecovery = useCallback(async (tokenHash: string) => {
+    if (!supabase) throw new Error(configurationError || 'Supabase is unavailable');
+    const { data, error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: 'recovery',
+    });
+    if (error) throw error;
+    await applySession(data.session);
+  }, [applySession, configurationError]);
+
+  const updatePassword = useCallback(async (password: string) => {
+    if (!supabase) throw new Error(configurationError || 'Supabase is unavailable');
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) throw error;
+  }, [configurationError]);
 
   const signOut = useCallback(async () => {
     if (supabase) {
@@ -158,6 +185,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     authError,
     signIn,
     signUp,
+    requestPasswordReset,
+    verifyPasswordRecovery,
+    updatePassword,
     signOut,
     refreshIdentity,
     hasPermission: permission => Boolean(identity?.permissions.includes(permission)),
@@ -167,10 +197,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     identity,
     loading,
     refreshIdentity,
+    requestPasswordReset,
     session,
     signIn,
     signOut,
     signUp,
+    updatePassword,
+    verifyPasswordRecovery,
   ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

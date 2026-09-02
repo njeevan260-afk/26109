@@ -34,6 +34,7 @@ import {
 
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { translateAlertMessage } from "../i18n/dynamicText";
 
 import {
   Alert,
@@ -158,27 +159,27 @@ function normalizeRiskValue(value: number): number {
   return value;
 }
 
-function formatDate(value: string): string {
+function formatDate(value: string, locale: string): string {
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
     return value;
   }
 
-  return date.toLocaleDateString("en-IN", {
+  return date.toLocaleDateString(locale, {
     day: "numeric",
     month: "short",
   });
 }
 
-function formatDateTime(value: string): string {
+function formatDateTime(value: string, locale: string): string {
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
     return value;
   }
 
-  return date.toLocaleTimeString("en-IN", {
+  return date.toLocaleTimeString(locale, {
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -189,7 +190,15 @@ function formatDateTime(value: string): string {
 ========================================================= */
 
 export default function Dashboard() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage || i18n.language;
+  const riskLabels: Record<string, string> = {
+    HIGH: t("common.high"),
+    MODERATE: t("common.moderate"),
+    LOW: t("common.low"),
+    NORMAL: t("common.normal"),
+    NONE: t("common.none"),
+  };
   const [summary, setSummary] =
     useState<DashboardSummary | null>(null);
 
@@ -326,9 +335,7 @@ export default function Dashboard() {
         err
       );
 
-      setError(
-        "Unable to load dashboard data. Make sure the FastAPI backend is running."
-      );
+      setError(t("dashboardPage.loadError"));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -453,25 +460,25 @@ export default function Dashboard() {
   const pieData = useMemo(
     () => [
       {
-        name: "High",
+        name: t("common.high"),
         value: highRiskCount,
         color:
           "var(--color-brand-red)",
       },
       {
-        name: "Moderate",
+        name: t("common.moderate"),
         value: moderateRiskCount,
         color:
           "var(--color-brand-yellow)",
       },
       {
-        name: "Low",
+        name: t("common.low"),
         value: lowRiskCount,
         color:
           "var(--color-brand-teal)",
       },
       {
-        name: "Normal",
+        name: t("common.normal"),
         value: normalRiskCount,
         color: "#E2E8F0",
       },
@@ -481,6 +488,7 @@ export default function Dashboard() {
       moderateRiskCount,
       lowRiskCount,
       normalRiskCount,
+      t,
     ]
   );
 
@@ -576,7 +584,7 @@ export default function Dashboard() {
     },
 
     {
-      label: "Moderate + High",
+      label: t("dashboardPage.moderateHigh"),
       value: loading
         ? "..."
         : moderateHighCount,
@@ -620,11 +628,11 @@ export default function Dashboard() {
 
         <div>
           <h1 className="text-2xl font-bold text-brand-navy">
-            Command Center
+            {t("dashboardPage.title")}
           </h1>
 
           <p className="text-brand-text-secondary mt-1">
-            Real-time herd health monitoring & predictions
+            {t("dashboardPage.subtitle")}
           </p>
         </div>
 
@@ -671,8 +679,8 @@ export default function Dashboard() {
 
             <span>
               {hardwareOnline
-                ? "ESP8266 Online"
-                : "Hardware Offline"}
+                ? t("dashboardPage.hardwareOnline")
+                : t("dashboardPage.hardwareOffline")}
             </span>
 
           </div>
@@ -699,7 +707,7 @@ export default function Dashboard() {
             }
             className="font-semibold underline"
           >
-            Retry
+            {t("common.retry")}
           </button>
 
         </div>
@@ -776,11 +784,11 @@ export default function Dashboard() {
             <div>
 
               <h2 className="text-lg font-bold text-brand-navy">
-                Herd Health Trend
+                {t("dashboardPage.trendTitle")}
               </h2>
 
               <p className="text-xs text-brand-text-secondary mt-1">
-                Historical herd risk index
+                {t("dashboardPage.trendSubtitle")}
               </p>
 
             </div>
@@ -789,7 +797,7 @@ export default function Dashboard() {
 
               <span className="w-2 h-2 rounded-full bg-brand-red" />
 
-              Prototype Signal
+              {t("common.prototypeSignal")}
 
             </div>
 
@@ -810,7 +818,7 @@ export default function Dashboard() {
                 <TrendingUp className="w-8 h-8 mb-2 opacity-40" />
 
                 <span className="text-sm">
-                  No risk history available yet.
+                  {t("dashboardPage.noHistory")}
                 </span>
 
               </div>
@@ -871,9 +879,7 @@ export default function Dashboard() {
                     tickFormatter={(
                       value
                     ) =>
-                      formatDate(
-                        String(value)
-                      )
+                      formatDate(String(value), locale)
                     }
                   />
 
@@ -920,15 +926,13 @@ export default function Dashboard() {
                           numericValue *
                             100
                         )}%`,
-                        "Prototype Signal",
+                        t("common.prototypeSignal"),
                       ];
                     }}
                     labelFormatter={(
                       value: unknown
                     ) =>
-                      formatDate(
-                        String(value)
-                      )
+                      formatDate(String(value), locale)
                     }
                   />
 
@@ -958,7 +962,7 @@ export default function Dashboard() {
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
 
           <h2 className="text-lg font-bold text-brand-navy mb-4">
-            Risk Distribution
+            {t("dashboardPage.riskDistribution")}
           </h2>
 
           <div className="flex-1 relative min-h-[220px]">
@@ -972,7 +976,7 @@ export default function Dashboard() {
             ) : totalCows === 0 ? (
 
               <div className="h-full flex items-center justify-center text-gray-400 text-sm">
-                No animal data available.
+                {t("dashboardPage.noAnimalData")}
               </div>
 
             ) : (
@@ -1037,7 +1041,7 @@ export default function Dashboard() {
                   </span>
 
                   <span className="text-xs text-brand-text-secondary font-medium">
-                    High Risk
+                    {t("highRisk")}
                   </span>
 
                 </div>
@@ -1101,7 +1105,7 @@ export default function Dashboard() {
               <MapPin className="w-5 h-5 text-brand-teal" />
 
               <h2 className="text-lg font-bold text-brand-navy">
-                Risk Clusters
+                {t("dashboardPage.riskClusters")}
               </h2>
 
             </div>
@@ -1110,7 +1114,7 @@ export default function Dashboard() {
               to="/analytics"
               className="text-sm font-medium text-brand-teal hover:underline"
             >
-              View Map →
+              {t("common.viewMap")} →
             </Link>
 
           </div>
@@ -1124,7 +1128,7 @@ export default function Dashboard() {
                 <MapPin className="w-8 h-8 mx-auto mb-2 text-gray-300" />
 
                 <p className="text-sm text-gray-400">
-                  No risk clusters detected.
+                  {t("dashboardPage.noClusters")}
                 </p>
 
               </div>
@@ -1187,10 +1191,7 @@ export default function Dashboard() {
                           </h4>
 
                           <p className="text-sm text-brand-text-secondary mt-1">
-                            {
-                              affectedCount
-                            }{" "}
-                            affected animals
+                            {t("dashboardPage.affectedAnimals", { count: affectedCount })}
                           </p>
 
                         </div>
@@ -1204,7 +1205,7 @@ export default function Dashboard() {
                               : "bg-brand-teal"
                           }`}
                         >
-                          {risk}
+                          {riskLabels[risk] || risk}
                         </span>
 
                       </div>
@@ -1249,7 +1250,7 @@ export default function Dashboard() {
               to="/alerts"
               className="text-sm font-medium text-brand-teal hover:underline"
             >
-              View All →
+              {t("common.viewAll")} →
             </Link>
 
           </div>
@@ -1270,7 +1271,7 @@ export default function Dashboard() {
                 <Bell className="w-8 h-8 mb-2 opacity-40" />
 
                 <span className="text-sm">
-                  {t("noData")}
+                  {t("dashboardPage.noActiveAlerts")}
                 </span>
 
               </div>
@@ -1315,9 +1316,7 @@ export default function Dashboard() {
 
                           <span className="text-xs text-gray-400 whitespace-nowrap">
 
-                            {formatDateTime(
-                              alert.created_at
-                            )}
+                            {formatDateTime(alert.created_at, locale)}
 
                           </span>
 
@@ -1325,7 +1324,7 @@ export default function Dashboard() {
 
                         <p className="text-sm text-brand-text-secondary mt-1">
                           {
-                            alert.message
+                            translateAlertMessage(t, alert.message)
                           }
                         </p>
 
@@ -1340,7 +1339,7 @@ export default function Dashboard() {
                             }`}
                           >
                             {
-                              alert.severity
+                              riskLabels[alert.severity] || alert.severity
                             }
                           </span>
 

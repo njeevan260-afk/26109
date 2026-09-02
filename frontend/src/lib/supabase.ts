@@ -4,6 +4,7 @@ type AuthEnvironment = {
   VITE_SUPABASE_URL?: string;
   VITE_SUPABASE_PUBLISHABLE_KEY?: string;
   VITE_SUPABASE_ANON_KEY?: string;
+  VITE_PUBLIC_SITE_URL?: string;
 };
 
 const environment = (import.meta as ImportMeta & { env: AuthEnvironment }).env;
@@ -23,6 +24,14 @@ export const supabase: SupabaseClient | null = supabaseConfigured
       },
     })
   : null;
+
+export function getAuthRedirectUrl(path: string): string {
+  const configuredSiteUrl = environment.VITE_PUBLIC_SITE_URL?.trim();
+  const publicSiteUrl = !configuredSiteUrl || configuredSiteUrl === 'auto'
+    ? window.location.origin
+    : configuredSiteUrl;
+  return new URL(path, publicSiteUrl).toString();
+}
 
 export async function getAccessToken(): Promise<string | null> {
   if (!supabase) return null;

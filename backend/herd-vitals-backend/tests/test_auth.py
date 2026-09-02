@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
+import httpx
 
 from app.core.auth import (
     AccountStatus,
@@ -79,6 +80,18 @@ class AuthenticationTests(unittest.TestCase):
             with self.assertRaises(HTTPException) as raised:
                 get_current_principal(self.credentials())
         self.assertEqual(raised.exception.status_code, 401)
+
+    def test_auth_network_failure_is_service_unavailable(self):
+        fake = _FakeSupabase([], [])
+        fake.get_user = lambda _token: (_ for _ in ()).throw(httpx.ConnectError("offline"))
+        with patch("app.core.auth.supabase", fake):
+            with self.assertRaises(HTTPException) as raised:
+                get_current_principal(self.credentials())
+        self.assertEqual(raised.exception.status_code, 503)
+        self.assertEqual(
+            raised.exception.detail,
+            "Authentication service is temporarily unavailable",
+        )
 
     def test_user_without_assignment_is_pending(self):
         with patch("app.core.auth.supabase", _FakeSupabase([], [])):

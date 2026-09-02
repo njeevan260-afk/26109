@@ -51,6 +51,7 @@ Set:
 
 ```env
 VITE_API_URL=https://your-backend-project.vercel.app
+VITE_PUBLIC_SITE_URL=https://your-frontend-project.vercel.app
 VITE_SUPABASE_URL=https://wfadjrtbgtiquphrtnvn.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_replace_me
 ```
@@ -68,6 +69,9 @@ Site URL: https://your-frontend-project.vercel.app
 Redirect URL: https://your-frontend-project.vercel.app/**
 Local redirect: http://localhost:3000/**
 ```
+
+The password-recovery email redirects users to `/reset-password`, so that path
+must be covered by the production and local redirect URL entries above.
 
 Add a Vercel preview wildcard only if preview authentication is required.
 

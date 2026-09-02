@@ -6,6 +6,7 @@ import logging
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+import httpx
 
 from app.core.database import supabase
 
@@ -67,8 +68,18 @@ def get_current_principal(
     try:
         auth_response = supabase.auth.get_user(credentials.credentials)
         user = getattr(auth_response, "user", None)
+    except httpx.HTTPError as exc:
+        logger.exception("Could not reach Supabase Auth: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Authentication service is temporarily unavailable",
+        ) from exc
     except Exception as exc:
-        logger.info("Supabase rejected bearer token: %s", exc)
+        logger.warning(
+            "Supabase rejected bearer token (%s): %s",
+            type(exc).__name__,
+            exc,
+        )
         raise _unauthorized("Invalid or expired session") from exc
 
     user_id = str(getattr(user, "id", "") or "")
