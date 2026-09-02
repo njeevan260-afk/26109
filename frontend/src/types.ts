@@ -153,6 +153,7 @@ export interface AuthIdentity {
   user_id: string;
   email?: string | null;
   display_name?: string | null;
+  phone_number?: string | null;
   organization_name?: string | null;
   requested_role?: AppRole | null;
   role?: AppRole | null;
@@ -165,6 +166,7 @@ export interface AdminRoleRequest {
   user_id: string;
   email?: string | null;
   display_name?: string | null;
+  phone_number?: string | null;
   organization_name?: string | null;
   requested_role?: AppRole | null;
   role: AppRole;

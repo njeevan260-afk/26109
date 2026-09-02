@@ -16,6 +16,7 @@ async def hardware_status():
         response = (
             supabase.table("sensor_readings")
             .select("device_id, reading_time, is_simulated")
+            .eq("is_simulated", False)
             .order("reading_time", desc=True)
             .limit(1)
             .execute()

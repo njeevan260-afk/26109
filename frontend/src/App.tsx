@@ -18,6 +18,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import HomePage from './pages/HomePage';
 import RealReadings from './pages/RealReadings';
 import ResetPassword from './pages/ResetPassword';
+import Profile from './pages/Profile';
 
 function App() {
   const { t } = useTranslation();
@@ -39,6 +40,7 @@ function App() {
               <Route path="portal/veterinarian" element={<Navigate to="/dashboard" replace />} />
               <Route path="portal/cooperative" element={<Navigate to="/dashboard" replace />} />
               <Route path="portal/authority" element={<Navigate to="/dashboard" replace />} />
+              <Route path="profile" element={<Profile />} />
               <Route element={<RequirePermission permission="dashboard.read" />}>
                 <Route path="dashboard" element={<Dashboard />} />
                 <Route path="real-readings" element={<RealReadings />} />

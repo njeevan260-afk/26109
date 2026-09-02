@@ -83,6 +83,7 @@ class AdminApprovalTests(unittest.TestCase):
                 "id": user_id,
                 "email": "vet@example.com",
                 "display_name": "Dr Vet",
+                "phone_number": "+919876543210",
                 "organization_name": "Animal Clinic",
                 "requested_role": "VETERINARIAN",
             }],
@@ -91,6 +92,7 @@ class AdminApprovalTests(unittest.TestCase):
             queue = _load_role_requests("PENDING")
         self.assertEqual(queue[0]["email"], "vet@example.com")
         self.assertEqual(queue[0]["display_name"], "Dr Vet")
+        self.assertEqual(queue[0]["phone_number"], "+919876543210")
 
     def test_admin_can_approve_non_admin_request(self):
         user_id = uuid4()

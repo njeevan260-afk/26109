@@ -5,13 +5,37 @@ import { useEffect, useState } from 'react';
 import { fetchHardwareStatus } from '../../lib/api';
 import { HardwareStatus } from '../../types';
 
+const HARDWARE_STATUS_POLL_INTERVAL_MS = 30_000;
+
 export default function Layout() {
   const [hardware, setHardware] = useState<HardwareStatus | undefined>();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
-    fetchHardwareStatus().then(setHardware);
+    let active = true;
+
+    const refreshHardwareStatus = async () => {
+      const latestStatus = await fetchHardwareStatus();
+      if (active && latestStatus) setHardware(latestStatus);
+    };
+
+    void refreshHardwareStatus();
+    const intervalId = window.setInterval(
+      () => void refreshHardwareStatus(),
+      HARDWARE_STATUS_POLL_INTERVAL_MS,
+    );
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') void refreshHardwareStatus();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   // Close mobile menu on route change

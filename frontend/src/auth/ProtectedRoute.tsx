@@ -20,5 +20,14 @@ export default function ProtectedRoute() {
   if (!identity || identity.account_status !== 'ACTIVE' || !identity.role) {
     return <Navigate to="/pending" replace />;
   }
+  if (!identity.phone_number && location.pathname !== '/profile') {
+    return (
+      <Navigate
+        to="/profile"
+        replace
+        state={{ profileRequired: true, from: location.pathname }}
+      />
+    );
+  }
   return <Outlet />;
 }

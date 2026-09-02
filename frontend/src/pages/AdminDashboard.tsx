@@ -168,6 +168,7 @@ export default function AdminDashboard() {
                   <div>
                     <p className="font-bold text-brand-navy">{request.display_name || t('adminPage.unnamedApplicant')}</p>
                     <p className="text-sm text-brand-text-secondary">{request.email || t('adminPage.emailUnavailable')}</p>
+                    {request.phone_number && <p className="text-sm text-brand-text-secondary">{request.phone_number}</p>}
                     <p className="text-sm text-brand-text-secondary">{request.organization_name || t('adminPage.independentApplicant')}</p>
                   </div>
                 </div>
@@ -197,7 +198,7 @@ export default function AdminDashboard() {
             <tbody className="divide-y divide-gray-100">
               {requests.map(request => (
                 <tr key={request.user_id}>
-                  <td className="px-5 py-4"><p className="font-semibold text-brand-navy">{request.display_name || t('adminPage.unnamedUser')}</p><p className="text-xs text-brand-text-secondary">{request.email}</p></td>
+                  <td className="px-5 py-4"><p className="font-semibold text-brand-navy">{request.display_name || t('adminPage.unnamedUser')}</p><p className="text-xs text-brand-text-secondary">{request.email}</p>{request.phone_number && <p className="text-xs text-brand-text-secondary">{request.phone_number}</p>}</td>
                   <td className="px-5 py-4 text-brand-text-secondary">{request.organization_name || '—'}</td>
                   <td className="px-5 py-4 font-medium text-brand-navy">{t(roleLabelKeys[request.role])}</td>
                   <td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${request.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700' : request.status === 'PENDING' ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'}`}>{t(`common.${request.status.toLowerCase()}`)}</span></td>

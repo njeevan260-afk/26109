@@ -1,4 +1,5 @@
 import logging
+import math
 
 from fastapi import APIRouter, HTTPException
 from app.core.database import supabase
@@ -6,19 +7,17 @@ from app.core.database import supabase
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-# Demo farm coordinates (Delhi NCR). These are marked as demo data in the API
-# response until farm geotags are stored in the database.
-BARN_POINTS = [
-    ("Barn A - High Risk", 77.1025, 28.7041),
-    ("Barn B - Moderate Watch", 77.1058, 28.7064),
-    ("Barn C - Stable", 77.0992, 28.7018),
-]
+RISK_PRIORITY = {"LOW": 0, "MODERATE": 1, "HIGH": 2}
 
 
 @router.get("/clusters")
 async def get_clusters():
     try:
-        animals_resp = supabase.table("animals").select("id, tag_number").execute()
+        animals_resp = (
+            supabase.table("animals")
+            .select("id, tag_number, latitude, longitude")
+            .execute()
+        )
         animals = animals_resp.data or []
         preds_resp = (
             supabase.table("predictions")
@@ -40,31 +39,44 @@ async def get_clusters():
                 row.get("risk_category") or "NONE"
             ).upper()
 
-    id_to_tag = {
-        str(a.get("id")): a.get("tag_number") or str(a.get("id"))
-        for a in animals
-    }
+    clusters = {}
+    for animal in animals:
+        latitude = animal.get("latitude")
+        longitude = animal.get("longitude")
+        if latitude is None or longitude is None:
+            continue
 
-    high, moderate, low = [], [], []
-    for animal_id, tag in id_to_tag.items():
-        risk = latest.get(animal_id, "NONE")
-        if risk == "HIGH":
-            high.append(tag)
-        elif risk == "MODERATE":
-            moderate.append(tag)
-        else:
-            low.append(tag)
+        try:
+            latitude = float(latitude)
+            longitude = float(longitude)
+        except (TypeError, ValueError):
+            continue
 
-    groups = [
-        ("HIGH", high),
-        ("MODERATE", moderate),
-        ("LOW", low),
-    ]
+        if (
+            not math.isfinite(latitude)
+            or not math.isfinite(longitude)
+            or not -90 <= latitude <= 90
+            or not -180 <= longitude <= 180
+        ):
+            continue
+
+        location = (round(latitude, 2), round(longitude, 2))
+        cluster = clusters.setdefault(location, {"tags": [], "risk": "LOW"})
+        animal_id = str(animal.get("id") or "")
+        tag = animal.get("tag_number") or animal_id
+        cluster["tags"].append(tag)
+
+        risk = latest.get(animal_id, "LOW")
+        if risk not in RISK_PRIORITY:
+            risk = "LOW"
+        if RISK_PRIORITY[risk] > RISK_PRIORITY[cluster["risk"]]:
+            cluster["risk"] = risk
 
     features = []
-    for (name, lon, lat), (risk, tags) in zip(BARN_POINTS, groups):
-        if not tags and risk != "LOW":
-            continue
+    for cluster_number, ((lat, lon), cluster) in enumerate(
+        sorted(clusters.items()), start=1
+    ):
+        tags = cluster["tags"]
         features.append({
             "type": "Feature",
             "geometry": {
@@ -72,16 +84,12 @@ async def get_clusters():
                 "coordinates": [lon, lat],
             },
             "properties": {
-                "cluster_name": name,
-                "risk_level": risk,
+                "cluster_name": f"VTU Mysuru Cluster {cluster_number}",
+                "risk_level": cluster["risk"],
                 "affected_cows": tags[:12],
                 "affected_count": len(tags),
                 "location_source": "demo",
-                "environment": {
-                    "temperature": 28.5,
-                    "humidity": 65.0,
-                    "hygiene_score": 85.0 if risk != "HIGH" else 62.0,
-                },
+                "environment_data_available": False,
             },
         })
 

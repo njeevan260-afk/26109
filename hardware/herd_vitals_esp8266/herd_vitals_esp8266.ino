@@ -1,6 +1,6 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
-#include <WiFiClient.h>
+#include <WiFiClientSecureBearSSL.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <ArduinoJson.h>
@@ -22,8 +22,8 @@
 const char* WIFI_SSID = "YOUR_WIFI_SSID";
 const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 
-// This is the laptop's Wi-Fi address. The backend must listen on 0.0.0.0:8000.
-const char* SERVER_URL = "http://10.32.74.230:8000/api/readings";
+// Production FastAPI ingestion endpoint deployed on Vercel.
+const char* SERVER_URL = "https://26109-opal.vercel.app/api/readings";
 
 // Leave empty when DEVICE_INGESTION_KEY is not set in the backend .env file.
 // If it is configured, put the same value here.
@@ -133,7 +133,7 @@ void printHttpFailure(int responseCode) {
   Serial.println(HTTPClient::errorToString(responseCode));
 
   if (responseCode == HTTPC_ERROR_CONNECTION_REFUSED) {
-    Serial.println("Check that the backend is running on 0.0.0.0:8000 and that Windows Firewall allows port 8000.");
+    Serial.println("Check Wi-Fi access and confirm that the Vercel backend URL is online.");
   } else if (responseCode == HTTPC_ERROR_CONNECTION_LOST) {
     Serial.println("The connection was lost. Check Wi-Fi signal strength and the backend process.");
   } else if (responseCode == HTTPC_ERROR_READ_TIMEOUT) {
@@ -152,7 +152,9 @@ bool sendToBackend(
     return false;
   }
 
-  WiFiClient client;
+  BearSSL::WiFiClientSecure client;
+  // Prototype TLS mode. Replace with CA validation before production use.
+  client.setInsecure();
   client.setTimeout(10000);
 
   HTTPClient http;

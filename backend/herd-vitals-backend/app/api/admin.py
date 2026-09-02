@@ -38,7 +38,7 @@ def _load_role_requests(status_filter: str | None = None) -> list[dict]:
 
     profile_rows = (
         supabase.table("profiles")
-        .select("id, email, display_name, organization_name, requested_role")
+        .select("id, email, display_name, phone_number, organization_name, requested_role")
         .execute()
         .data
         or []
@@ -49,6 +49,7 @@ def _load_role_requests(status_filter: str | None = None) -> list[dict]:
             **row,
             "email": profiles.get(str(row["user_id"]), {}).get("email"),
             "display_name": profiles.get(str(row["user_id"]), {}).get("display_name"),
+            "phone_number": profiles.get(str(row["user_id"]), {}).get("phone_number"),
             "organization_name": profiles.get(str(row["user_id"]), {}).get("organization_name"),
             "requested_role": profiles.get(str(row["user_id"]), {}).get("requested_role"),
         }

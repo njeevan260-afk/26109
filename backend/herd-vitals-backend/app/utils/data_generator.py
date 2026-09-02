@@ -15,6 +15,9 @@ def generate_cow_profile(cow_index: int) -> Dict[str, Any]:
     # EC: 3.5 to 5.0 mS/cm (normal), Temp: 38.0 to 39.0 degrees C
     baseline_ec = round(random.uniform(3.8, 4.8), 2)
     baseline_temp = round(random.uniform(38.2, 38.8), 1)
+    # VTU Regional Centre, Mysuru (Hanchya Sathagalli); jitter within about 1 km.
+    latitude = round(12.325333 + random.uniform(-0.01, 0.01), 6)
+    longitude = round(76.699547 + random.uniform(-0.01, 0.01), 6)
     
     # Assign breeds cyclically for variety
     breeds = ["Holstein Friesian", "Jersey", "Sahiwal", "Gir", "Crossbreed"]
@@ -27,6 +30,8 @@ def generate_cow_profile(cow_index: int) -> Dict[str, Any]:
         "previous_mastitis_count": random.randint(0, 2),
         "baseline_ec": baseline_ec,
         "baseline_temp": baseline_temp,
+        "latitude": latitude,
+        "longitude": longitude,
     }
 
 def generate_time_series(animal_id: str, baseline_ec: float, baseline_temp: float) -> List[Dict[str, Any]]:

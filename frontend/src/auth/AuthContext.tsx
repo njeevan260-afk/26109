@@ -16,8 +16,15 @@ interface SignUpInput {
   email: string;
   password: string;
   displayName: string;
+  phoneNumber: string;
   organizationName: string;
   requestedRole: AppRole;
+}
+
+interface ProfileUpdateInput {
+  displayName: string;
+  phoneNumber: string;
+  organizationName: string;
 }
 
 interface AuthContextValue {
@@ -28,6 +35,7 @@ interface AuthContextValue {
   authError: string | null;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (input: SignUpInput) => Promise<{ confirmationRequired: boolean }>;
+  updateProfile: (input: ProfileUpdateInput) => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
   verifyPasswordRecovery: (tokenHash: string) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
@@ -129,6 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         emailRedirectTo: getAuthRedirectUrl('/login'),
         data: {
           display_name: input.displayName,
+          phone_number: input.phoneNumber,
           organization_name: input.organizationName,
           requested_role: input.requestedRole,
         },
@@ -145,6 +154,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
     if (error) throw error;
   }, [configurationError]);
+
+  const updateProfile = useCallback(async (input: ProfileUpdateInput) => {
+    if (!supabase || !session) throw new Error(configurationError || 'Supabase is unavailable');
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        display_name: input.displayName,
+        phone_number: input.phoneNumber,
+        organization_name: input.organizationName || null,
+      })
+      .eq('id', session.user.id);
+    if (error) throw error;
+    await applySession(session);
+  }, [applySession, configurationError, session]);
 
   const verifyPasswordRecovery = useCallback(async (tokenHash: string) => {
     if (!supabase) throw new Error(configurationError || 'Supabase is unavailable');
@@ -185,6 +208,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     authError,
     signIn,
     signUp,
+    updateProfile,
     requestPasswordReset,
     verifyPasswordRecovery,
     updatePassword,
@@ -203,6 +227,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut,
     signUp,
     updatePassword,
+    updateProfile,
     verifyPasswordRecovery,
   ]);
 

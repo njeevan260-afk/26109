@@ -42,6 +42,8 @@ import {
   HardwareStatus,
 } from "../types";
 
+const HARDWARE_STATUS_POLL_INTERVAL_MS = 30_000;
+
 /* =========================================================
    TYPES
 ========================================================= */
@@ -348,6 +350,21 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadDashboard();
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const intervalId = window.setInterval(async () => {
+      const latestStatus = await fetchHardwareStatus();
+      if (active && latestStatus) {
+        setHardware(latestStatus);
+      }
+    }, HARDWARE_STATUS_POLL_INTERVAL_MS);
+
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
+    };
   }, []);
 
   /* =======================================================

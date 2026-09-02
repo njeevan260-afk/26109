@@ -98,10 +98,10 @@ export default function Topbar({ hardware, onMenuClick }: TopbarProps) {
           </span>
         </button>
 
-        <div className="hidden lg:block text-right text-xs">
+        <NavLink to="/profile" className="hidden rounded-lg px-2 py-1 text-right text-xs transition-colors hover:bg-gray-50 lg:block">
           <p className="font-bold text-brand-navy">{identity?.display_name || identity?.email || t('nav.signedIn')}</p>
           <p className="text-brand-text-secondary">{identity?.role ? t(roleLabelKeys[identity.role]) : ''}</p>
-        </div>
+        </NavLink>
         <button
           type="button"
           onClick={() => void handleSignOut()}
