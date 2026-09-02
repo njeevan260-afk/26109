@@ -1,0 +1,13 @@
+# Development-only code and generated local artifacts.
+tests/
+artifacts/
+**/__pycache__/
+**/*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+requirements-dev.txt
+
+# Offline training/benchmark modules are not imported by the API runtime.
+app/ml/evaluation.py
+app/ml/train.py

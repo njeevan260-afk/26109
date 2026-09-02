@@ -9,6 +9,12 @@ repository. Do not commit either local `.env` file.
 - Root Directory: `backend/herd-vitals-backend`
 - Framework: FastAPI (detected through `index.py`)
 
+The production dependency set is intentionally kept in `requirements.txt`.
+For local development and offline model benchmarking, install
+`requirements-dev.txt` instead. In particular, XGBoost must stay out of the
+production file because its native library can push the function over Vercel's
+bundle-size limit.
+
 Set these variables for Production and, if required, Preview:
 
 ```env

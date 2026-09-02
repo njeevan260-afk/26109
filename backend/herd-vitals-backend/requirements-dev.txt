@@ -1,0 +1,9 @@
+-r requirements.txt
+
+# Local ASGI server; Vercel provides the production function runtime.
+uvicorn==0.52.4
+
+# Used only by app/ml/evaluation.py and the offline training benchmark.
+# Keeping this out of requirements.txt avoids bundling its large native library
+# in every Vercel function.
+xgboost==3.4.1
