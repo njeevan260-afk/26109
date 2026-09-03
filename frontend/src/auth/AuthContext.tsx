@@ -34,6 +34,7 @@ interface AuthContextValue {
   configurationError: string | null;
   authError: string | null;
   signIn: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signUp: (input: SignUpInput) => Promise<{ confirmationRequired: boolean }>;
   updateProfile: (input: ProfileUpdateInput) => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
@@ -128,6 +129,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await applySession(data.session);
   }, [applySession, configurationError]);
 
+  const signInWithGoogle = useCallback(async () => {
+    if (!supabase) throw new Error(configurationError || 'Supabase is unavailable');
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: getAuthRedirectUrl('/app'),
+      },
+    });
+    if (error) throw error;
+  }, [configurationError]);
+
   const signUp = useCallback(async (input: SignUpInput) => {
     if (!supabase) throw new Error(configurationError || 'Supabase is unavailable');
     const { data, error } = await supabase.auth.signUp({
@@ -207,6 +219,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     configurationError,
     authError,
     signIn,
+    signInWithGoogle,
     signUp,
     updateProfile,
     requestPasswordReset,
@@ -224,6 +237,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     requestPasswordReset,
     session,
     signIn,
+    signInWithGoogle,
     signOut,
     signUp,
     updatePassword,

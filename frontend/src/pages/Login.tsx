@@ -5,7 +5,7 @@ import { useAuth } from '../auth/AuthContext';
 import { getDashboardPath } from '../auth/dashboardPath';
 
 export default function Login() {
-  const { session, identity, loading, configurationError, authError, signIn, requestPasswordReset } = useAuth();
+  const { session, identity, loading, configurationError, authError, signIn, signInWithGoogle, requestPasswordReset } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [email, setEmail] = useState('');
@@ -70,6 +70,18 @@ export default function Login() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setSubmitting(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      await signInWithGoogle();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Google sign in failed');
+      setSubmitting(false);
+    }
+  };
+
   return (
     <main className="min-h-screen grid place-items-center bg-brand-bg p-4">
       <div className="w-full max-w-md rounded-2xl border border-gray-100 bg-white p-7 shadow-sm">
@@ -127,6 +139,17 @@ export default function Login() {
             {recoveryMode ? 'Back to sign in' : 'Forgot password?'}
           </button>
         </form>
+
+        {!recoveryMode && (
+          <button
+            type="button"
+            disabled={submitting || Boolean(configurationError)}
+            className="mt-4 w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 font-bold text-brand-navy disabled:opacity-50"
+            onClick={handleGoogleSignIn}
+          >
+            {submitting ? 'Connecting to Google...' : 'Continue with Google'}
+          </button>
+        )}
 
         <p className="mt-5 text-center text-sm text-brand-text-secondary">
           Need access? <Link className="font-bold text-brand-teal hover:underline" to="/register">Request an account</Link>
