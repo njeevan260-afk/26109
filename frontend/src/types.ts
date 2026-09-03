@@ -154,7 +154,6 @@ export interface AuthIdentity {
   email?: string | null;
   display_name?: string | null;
   phone_number?: string | null;
-  whatsapp_alerts_enabled?: boolean;
   organization_name?: string | null;
   requested_role?: AppRole | null;
   role?: AppRole | null;

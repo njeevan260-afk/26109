@@ -89,9 +89,7 @@ def _save_prediction(animal_id: str, prediction: dict) -> None:
 
 
 def process_live_risk_alerts(animal_ids: list[str]) -> None:
-    """Recompute each cow after live ingestion and notify on elevated risk."""
-    from app.services.whatsapp_service import send_risk_alerts
-
+    """Recompute each cow after live ingestion and create elevated alerts."""
     for animal_id in sorted(set(animal_ids)):
         try:
             prediction = _compute_prediction(animal_id, live_only=True)
@@ -101,9 +99,8 @@ def process_live_risk_alerts(animal_ids: list[str]) -> None:
             category = str(prediction.get("category") or "").upper()
             if category in {"HIGH", "MODERATE"}:
                 create_elevated_risk_alert(animal_id, prediction)
-                send_risk_alerts(animal_id, prediction)
         except Exception as exc:
-            # Notification failures must never make the hardware retry a batch
+            # Risk-processing failures must never make hardware retry a batch
             # whose readings were already stored.
             logger.exception("Live risk processing failed for %s: %s", animal_id, exc)
 

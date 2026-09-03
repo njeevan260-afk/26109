@@ -25,7 +25,6 @@ interface ProfileUpdateInput {
   displayName: string;
   phoneNumber: string;
   organizationName: string;
-  whatsappAlertsEnabled: boolean;
 }
 
 interface AuthContextValue {
@@ -175,7 +174,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .update({
         display_name: input.displayName,
         phone_number: input.phoneNumber,
-        whatsapp_alerts_enabled: input.whatsappAlertsEnabled,
         organization_name: input.organizationName || null,
       })
       .eq('id', session.user.id);

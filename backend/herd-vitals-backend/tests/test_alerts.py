@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from app.api.alerts import _elevated_alert_payload, create_elevated_risk_alert
+from app.api.predictions import process_live_risk_alerts
 
 
 class ElevatedAlertPayloadTests(unittest.TestCase):
@@ -44,6 +45,24 @@ class ElevatedAlertPayloadTests(unittest.TestCase):
         update = alerts_table.update.call_args.args[0]
         self.assertEqual(update["severity"], "HIGH")
         alerts_table.insert.assert_not_called()
+
+    @patch("app.api.predictions.create_elevated_risk_alert")
+    @patch("app.api.predictions._save_prediction")
+    @patch("app.api.predictions._compute_prediction")
+    def test_live_ingestion_creates_an_in_app_alert_for_moderate_risk(
+        self,
+        compute_prediction,
+        save_prediction,
+        create_alert,
+    ):
+        prediction = {"category": "MODERATE", "data_source": "live"}
+        compute_prediction.return_value = prediction
+
+        process_live_risk_alerts(["cow-1", "cow-1"])
+
+        compute_prediction.assert_called_once_with("cow-1", live_only=True)
+        save_prediction.assert_called_once_with("cow-1", prediction)
+        create_alert.assert_called_once_with("cow-1", prediction)
 
 
 if __name__ == "__main__":

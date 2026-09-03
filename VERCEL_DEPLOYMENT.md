@@ -23,18 +23,11 @@ SUPABASE_SECRET_KEY=sb_secret_replace_me
 DEVICE_INGESTION_KEY=replace_with_a_long_random_secret
 CORS_ORIGINS=https://your-frontend-project.vercel.app
 MODEL_ARTIFACT_PATH=/tmp/mastitis-risk-model.joblib
-YCLOUD_API_KEY=replace_with_ycloud_api_key
-YCLOUD_WHATSAPP_FROM=+15551234567
-YCLOUD_WHATSAPP_TEMPLATE_NAME=herdvitals_risk_alert_v1
-YCLOUD_WHATSAPP_TEMPLATE_LANGUAGE=en
-YCLOUD_WEBHOOK_SECRET=whsec_replace_with_endpoint_secret
 ```
 
 Mark `SUPABASE_SECRET_KEY` and `DEVICE_INGESTION_KEY` as sensitive. The legacy
 `SUPABASE_SERVICE_ROLE_KEY` is supported as an alternative, but do not configure
 both. Never place either backend key in the frontend project or hardware.
-Mark `YCLOUD_API_KEY` and `YCLOUD_WEBHOOK_SECRET` as sensitive too. They must
-never be added to the frontend project.
 
 For preview frontend deployments, optionally set a narrowly scoped regex:
 
