@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { fetchAlerts, resolveAlert } from '../lib/api';
 import { Alert } from '../types';
-import { ShieldAlert, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, CheckCircle, Clock, HeartPulse, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
@@ -22,6 +22,17 @@ function formatRelativeTime(value: string, locale: string) {
   return value;
 }
 
+const ALERT_GUIDANCE = {
+  HIGH: {
+    precautions: ['animalPage.recSeparate', 'animalPage.recHygieneCalibration'],
+    care: ['animalPage.recInspect', 'animalPage.recVet'],
+  },
+  MODERATE: {
+    precautions: ['animalPage.recHousing', 'animalPage.recMonitor'],
+    care: ['animalPage.recExam', 'animalPage.recCmt'],
+  },
+} as const;
+
 export default function AlertsCenter() {
   const { t, i18n } = useTranslation();
   const locale = i18n.resolvedLanguage || i18n.language;
@@ -31,8 +42,28 @@ export default function AlertsCenter() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchAlerts().then(setAlerts);
-  }, []);
+    let active = true;
+    const refreshAlerts = () => {
+      fetchAlerts()
+        .then(data => {
+          if (active) {
+            setAlerts(data);
+            setError(null);
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          if (active) setError(t('alertsPage.loadError'));
+        });
+    };
+
+    refreshAlerts();
+    const intervalId = window.setInterval(refreshAlerts, 5_000);
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
+    };
+  }, [t]);
 
   const handleResolve = async (alertId: string) => {
     setResolvingId(alertId);
@@ -104,10 +135,11 @@ export default function AlertsCenter() {
           <div className="divide-y divide-gray-100">
             {filteredAlerts.map(alert => (
               <div key={alert.id} className={clsx(
-                "p-5 flex flex-col sm:flex-row gap-4 sm:items-center justify-between transition-colors hover:bg-gray-50",
+                "p-5 flex flex-col gap-4 transition-colors hover:bg-gray-50",
                 alert.status === 'RESOLVED' && "opacity-60 grayscale-[50%]"
               )}>
-                <div className="flex gap-4 items-start sm:items-center">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex gap-4 items-start">
                   <div className={clsx(
                     "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
                     alert.severity === 'HIGH' ? 'bg-red-50 border border-red-100' : 'bg-yellow-50 border border-yellow-100'
@@ -148,6 +180,25 @@ export default function AlertsCenter() {
                     </Link>
                   </div>
                 </div>
+                </div>
+
+                <div className="grid gap-3 pl-0 sm:grid-cols-2 sm:pl-14">
+                  <GuidancePanel
+                    icon={ShieldCheck}
+                    title={t('alertsPage.precautions')}
+                    items={ALERT_GUIDANCE[alert.severity].precautions.map(key => t(key))}
+                    tone={alert.severity === 'HIGH' ? 'red' : 'amber'}
+                  />
+                  <GuidancePanel
+                    icon={HeartPulse}
+                    title={t('alertsPage.careRequired')}
+                    items={ALERT_GUIDANCE[alert.severity].care.map(key => t(key))}
+                    tone={alert.severity === 'HIGH' ? 'red' : 'amber'}
+                  />
+                </div>
+                <p className="pl-0 text-xs text-brand-text-secondary sm:pl-14">
+                  {t('alertsPage.clinicalDisclaimer')}
+                </p>
               </div>
             ))}
           </div>
@@ -155,5 +206,32 @@ export default function AlertsCenter() {
       </div>
 
     </div>
+  );
+}
+
+function GuidancePanel({
+  icon: Icon,
+  title,
+  items,
+  tone,
+}: {
+  icon: typeof ShieldCheck;
+  title: string;
+  items: string[];
+  tone: 'red' | 'amber';
+}) {
+  return (
+    <section className={clsx(
+      'rounded-xl border p-3',
+      tone === 'red' ? 'border-red-100 bg-red-50/70' : 'border-amber-100 bg-amber-50/70',
+    )}>
+      <h3 className="flex items-center gap-2 text-sm font-bold text-brand-navy">
+        <Icon className={clsx('h-4 w-4', tone === 'red' ? 'text-brand-red' : 'text-amber-600')} />
+        {title}
+      </h3>
+      <ul className="mt-2 space-y-1 text-sm text-brand-text-secondary">
+        {items.map(item => <li key={item}>• {item}</li>)}
+      </ul>
+    </section>
   );
 }

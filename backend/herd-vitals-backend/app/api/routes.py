@@ -14,12 +14,14 @@ from app.api import (
     readings,
     sensors,
     simulate,
+    webhooks,
 )
 from app.core.auth import require_active_user, require_permissions
 
 router = APIRouter()
 
 router.include_router(auth.router, prefix="/api", tags=["Authentication"])
+router.include_router(webhooks.router, prefix="/api", tags=["Webhooks"])
 router.include_router(admin.router, prefix="/api", tags=["Administration"])
 router.include_router(readings.router, prefix="/api", tags=["Readings"])
 router.include_router(

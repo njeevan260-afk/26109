@@ -1,11 +1,15 @@
 import { TFunction } from 'i18next';
 
-const HIGH_RISK_ALERT = /^(.+) classified HIGH risk \((\d+)% prototype signal\)\. Inspect the animal and confirm clinically\.$/;
+const ELEVATED_RISK_ALERT = /^(.+) classified (HIGH|MODERATE) risk \((\d+)% prototype signal\)\./;
 
 export function translateAlertMessage(t: TFunction, message: string) {
-  const match = message.match(HIGH_RISK_ALERT);
+  const match = message.match(ELEVATED_RISK_ALERT);
   if (match) {
-    return t('alertsPage.highRiskMessage', { tag: match[1], risk: match[2] });
+    return t('alertsPage.elevatedRiskMessage', {
+      tag: match[1],
+      level: t(`common.${match[2].toLowerCase()}`),
+      risk: match[3],
+    });
   }
   if (message === 'Mastitis risk detected.') {
     return t('alertsPage.mastitisDetected');

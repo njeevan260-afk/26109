@@ -24,6 +24,9 @@ export default function Profile() {
   const state = (location.state || {}) as ProfileLocationState;
   const [displayName, setDisplayName] = useState(identity?.display_name || '');
   const [phoneNumber, setPhoneNumber] = useState(identity?.phone_number || '');
+  const [whatsappAlertsEnabled, setWhatsappAlertsEnabled] = useState(
+    Boolean(identity?.whatsapp_alerts_enabled),
+  );
   const [organizationName, setOrganizationName] = useState(identity?.organization_name || '');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +37,7 @@ export default function Profile() {
   useEffect(() => {
     setDisplayName(identity?.display_name || '');
     setPhoneNumber(identity?.phone_number || '');
+    setWhatsappAlertsEnabled(Boolean(identity?.whatsapp_alerts_enabled));
     setOrganizationName(identity?.organization_name || '');
   }, [identity]);
 
@@ -50,10 +54,13 @@ export default function Profile() {
       await updateProfile({
         displayName: displayName.trim(),
         phoneNumber: normalizedPhone,
+        whatsappAlertsEnabled,
         organizationName: role === 'DAIRY_FARMER' ? '' : organizationName.trim(),
       });
       setPhoneNumber(normalizedPhone);
-      setSuccess('Your profile has been updated. This number can be used for future SMS alerts.');
+      setSuccess(whatsappAlertsEnabled
+        ? 'Profile saved. Elevated cow-risk alerts will be sent to this WhatsApp number at most once every 24 hours per cow.'
+        : 'Your profile has been updated. WhatsApp alerts are turned off.');
       if (state.profileRequired) {
         navigate(state.from && state.from !== '/profile' ? state.from : '/app', { replace: true });
       }
@@ -72,7 +79,7 @@ export default function Profile() {
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-emerald-300">Account profile</p>
             <h1 className="mt-1 text-3xl font-bold">Your contact details</h1>
-            <p className="mt-2 text-slate-200">Keep your phone number current so HerdVitals can support real-time SMS alerts in the future.</p>
+            <p className="mt-2 text-slate-200">Keep your number current and choose whether to receive elevated cow-risk alerts on WhatsApp.</p>
           </div>
         </div>
       </section>
@@ -98,6 +105,19 @@ export default function Profile() {
         {affiliation && role !== 'DAIRY_COOPERATIVE' && (
           <label className="space-y-1.5 text-sm font-medium text-brand-navy sm:col-span-2">{affiliation.label} <span className="font-normal text-brand-text-secondary">(optional)</span><input value={organizationName} onChange={event => setOrganizationName(event.target.value)} autoComplete="organization" className="w-full rounded-lg border border-gray-200 px-3 py-2.5" /></label>
         )}
+
+        <label className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950 sm:col-span-2">
+          <input
+            type="checkbox"
+            checked={whatsappAlertsEnabled}
+            onChange={event => setWhatsappAlertsEnabled(event.target.checked)}
+            className="mt-1 h-4 w-4 accent-emerald-700"
+          />
+          <span>
+            <strong>Send me WhatsApp risk alerts.</strong><br />
+            I agree to receive HIGH or MODERATE risk messages for individual cows, including readings and preventive steps. A persistent risk may be repeated after 24 hours. I can turn this off here at any time.
+          </span>
+        </label>
 
         <button disabled={submitting} type="submit" className="rounded-lg bg-brand-teal px-4 py-2.5 font-bold text-white disabled:opacity-50 sm:col-span-2">{submitting ? 'Saving profile...' : 'Save profile'}</button>
       </form>

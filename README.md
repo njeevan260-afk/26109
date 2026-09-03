@@ -11,6 +11,8 @@ HerdVitals is an AI/IoT prototype for early bovine mastitis risk monitoring. The
 - Prediction preview: read-only `GET`; opening pages does not add database rows
 - Prediction recomputation: explicit `POST`; saves one prediction and may create a deduplicated high-risk alert
 - Hardware ingestion: validated EC/TEMP batch endpoint
+- WhatsApp alerts: YCloud utility-template delivery for HIGH/MODERATE live risk,
+  with explicit user opt-in and one delivery per cow/recipient every 24 hours
 - Clinical validation: not completed
 - Scientific pipeline: one event-based 7-to-14-day label, leakage-safe temporal
   features, chronological evaluation, and Logistic/RF/ExtraTrees/XGBoost
@@ -33,6 +35,9 @@ Required backend environment variables:
 - `SUPABASE_URL`
 - `SUPABASE_SECRET_KEY` (preferred) or the legacy `SUPABASE_SERVICE_ROLE_KEY`
 - `DEVICE_INGESTION_KEY` for authenticated hardware ingestion
+- `YCLOUD_API_KEY`, `YCLOUD_WHATSAPP_FROM`,
+  `YCLOUD_WHATSAPP_TEMPLATE_NAME`, `YCLOUD_WHATSAPP_TEMPLATE_LANGUAGE`, and
+  `YCLOUD_WEBHOOK_SECRET` for WhatsApp risk alerts
 
 The API and Swagger documentation run at `http://127.0.0.1:8000` and `http://127.0.0.1:8000/docs`.
 
@@ -121,6 +126,42 @@ Example hardware payload:
 ```
 
 When `DEVICE_INGESTION_KEY` is configured, send it in the `X-Device-Key` header.
+
+## Enable YCloud WhatsApp alerts
+
+1. Apply `supabase/migrations/20260903120000_add_ycloud_whatsapp_alerts.sql`.
+2. In YCloud, connect the WhatsApp Business Account and sender number, then
+   create an English **UTILITY** template named `herdvitals_risk_alert_v1` with
+   this body (keep the seven variables in this exact order):
+
+```text
+HerdVitals {{1}} risk alert
+Cow: {{2}}
+Breed: {{3}}
+7-day prototype risk: {{4}}
+Latest EC: {{5}}
+Latest temperature: {{6}}
+Preventive steps: {{7}}
+
+This is an early-warning signal, not a diagnosis. Confirm clinically and contact a veterinarian.
+```
+
+3. Wait until Meta marks the template `APPROVED`. Add the YCloud values shown
+   in `.env.example` to the backend environment and redeploy/restart it.
+4. Create a YCloud webhook endpoint for `whatsapp.message.updated` pointing to
+   `https://YOUR-BACKEND/api/webhooks/ycloud`. Store its signing secret as
+   `YCLOUD_WEBHOOK_SECRET`.
+5. Each intended recipient opens **Profile**, confirms an E.164 WhatsApp number,
+   enables **Send me WhatsApp risk alerts**, and saves.
+6. Send a physical-device batch to `POST /api/readings`. Each affected cow is
+   recomputed. Only a live `HIGH` or `MODERATE` result is sent. Accepted sends
+   suppress that cow/recipient pair for a rolling 24 hours; if the risk remains
+   elevated after that period, the next real batch sends the reminder.
+
+Recipients are currently application-wide because this prototype has no farm
+or cow ownership mapping. Add farm membership/animal ownership before using it
+across unrelated organizations. Set `WHATSAPP_ALERT_ROLES` to narrow delivery
+by active role if needed.
 
 ## Verification
 

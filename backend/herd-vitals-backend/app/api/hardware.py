@@ -7,6 +7,7 @@ from app.core.database import supabase
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+ONLINE_WINDOW_SECONDS = 20
 
 
 @router.get("/health/hardware")
@@ -35,17 +36,18 @@ async def hardware_status():
         reading_time = datetime.fromisoformat(
             str(latest["reading_time"]).replace("Z", "+00:00")
         ).astimezone(timezone.utc)
-        age_minutes = max(
-            0, (datetime.now(timezone.utc) - reading_time).total_seconds() / 60
+        age_seconds = max(
+            0, (datetime.now(timezone.utc) - reading_time).total_seconds()
         )
+        is_online = age_seconds <= ONLINE_WINDOW_SECONDS
         is_simulated = bool(latest.get("is_simulated"))
         return {
-            "status": "online" if age_minutes <= 15 else "offline",
+            "status": "online" if is_online else "offline",
             "device_id": latest.get("device_id") or "unknown",
-            "signal_strength": 100 if age_minutes <= 15 else 0,
+            "signal_strength": 100 if is_online else 0,
             "battery": None,
             "last_reading": reading_time.isoformat(),
-            "age_minutes": round(age_minutes, 1),
+            "age_minutes": round(age_seconds / 60, 1),
             "data_source": "simulated" if is_simulated else "live",
         }
     except Exception as exc:

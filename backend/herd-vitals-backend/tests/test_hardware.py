@@ -1,5 +1,5 @@
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 from app.api.hardware import hardware_status
@@ -68,6 +68,25 @@ class HardwareStatusTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["status"], "online")
         self.assertEqual(result["device_id"], "ESP8266-BARN-A")
         self.assertEqual(result["data_source"], "live")
+
+    async def test_reading_older_than_twenty_seconds_marks_device_offline(self):
+        database = _Supabase(
+            [
+                {
+                    "device_id": "ESP8266-BARN-A",
+                    "reading_time": (
+                        datetime.now(timezone.utc) - timedelta(seconds=21)
+                    ).isoformat(),
+                    "is_simulated": False,
+                }
+            ]
+        )
+
+        with patch("app.api.hardware.supabase", database):
+            result = await hardware_status()
+
+        self.assertEqual(result["status"], "offline")
+        self.assertEqual(result["signal_strength"], 0)
 
 
 if __name__ == "__main__":

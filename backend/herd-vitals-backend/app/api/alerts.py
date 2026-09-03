@@ -29,38 +29,59 @@ def _animal_details_map():
         return {}
 
 
-def create_high_risk_alert(animal_id: str, prediction: dict) -> None:
-    """
-    Insert an alert whenever a cow is classified HIGH.
-    Failures are logged and never crash prediction.
-    """
+def _elevated_alert_payload(animal_id: str, prediction: dict) -> dict | None:
+    category = str(prediction.get("category") or "").upper()
+    if category not in {"HIGH", "MODERATE"}:
+        return None
+
+    tag = prediction.get("tag_number") or animal_id
+    risk_pct = round(float(prediction.get("risk_7day") or 0) * 100)
+    urgency = "Inspect the animal now" if category == "HIGH" else "Arrange a clinical check within 48 hours"
+    return {
+        "animal_id": animal_id,
+        "severity": category,
+        "status": "UNRESOLVED",
+        "message": (
+            f"{tag} classified {category} risk "
+            f"({risk_pct}% prototype signal). {urgency}."
+        ),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def create_elevated_risk_alert(animal_id: str, prediction: dict) -> None:
+    """Create or escalate an unresolved alert for HIGH or MODERATE risk."""
+    payload = _elevated_alert_payload(animal_id, prediction)
+    if payload is None:
+        return
+
     try:
         existing = (
             supabase.table("alerts")
-            .select("id")
+            .select("id,severity")
             .eq("animal_id", animal_id)
             .eq("status", "UNRESOLVED")
             .limit(1)
             .execute()
         )
         if existing.data:
+            current = existing.data[0]
+            current_severity = str(current.get("severity") or "MODERATE").upper()
+            if payload["severity"] == "HIGH" and current_severity != "HIGH":
+                supabase.table("alerts").update(
+                    {
+                        "severity": payload["severity"],
+                        "message": payload["message"],
+                        "created_at": payload["created_at"],
+                    }
+                ).eq("id", current["id"]).execute()
+                logger.info("Alert escalated to HIGH for %s", animal_id)
+                return
             logger.info("Skipped duplicate unresolved alert for %s", animal_id)
             return
 
-        tag = prediction.get("tag_number") or animal_id
-        risk_pct = round(float(prediction.get("risk_7day") or 0) * 100)
-        payload = {
-            "animal_id": animal_id,
-            "severity": "HIGH",
-            "status": "UNRESOLVED",
-            "message": (
-                f"{tag} classified HIGH risk "
-                f"({risk_pct}% prototype signal). Inspect the animal and confirm clinically."
-            ),
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        }
         supabase.table("alerts").insert(payload).execute()
-        logger.info("Alert created for %s", tag)
+        logger.info("%s alert created for %s", payload["severity"], animal_id)
     except Exception as exc:
         logger.exception("Could not create alert for %s: %s", animal_id, exc)
 

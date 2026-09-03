@@ -9,3 +9,5 @@ backend/herd-vitals-backend/**/*.pyc
 !.env.example
 !**/.env.example
 .codex-tmp/
+.codex-build/
+*.inspect.ndjson

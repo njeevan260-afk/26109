@@ -6,7 +6,7 @@ import traceback
 import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
 
-from app.api.alerts import create_high_risk_alert
+from app.api.alerts import create_elevated_risk_alert
 from app.core.database import supabase
 from app.services.ml_service import get_or_train_model, heuristic_fallback
 
@@ -18,12 +18,16 @@ logger = logging.getLogger(__name__)
 PREDICTION_READING_LIMIT = 160
 
 
-def _fetch_recent_readings(animal_id: str) -> pd.DataFrame:
-    response = (
+def _fetch_recent_readings(animal_id: str, live_only: bool = False) -> pd.DataFrame:
+    query = (
         supabase.table("sensor_readings")
         .select("sensor_type, value, reading_time, is_simulated")
         .eq("animal_id", animal_id)
-        .order("reading_time", desc=True)
+    )
+    if live_only:
+        query = query.eq("is_simulated", False)
+    response = (
+        query.order("reading_time", desc=True)
         .limit(PREDICTION_READING_LIMIT)
         .execute()
     )
@@ -39,9 +43,9 @@ def _fetch_recent_readings(animal_id: str) -> pd.DataFrame:
     return readings.sort_values("reading_time").reset_index(drop=True)
 
 
-def _compute_prediction(animal_id: str) -> dict:
+def _compute_prediction(animal_id: str, live_only: bool = False) -> dict:
     try:
-        readings = _fetch_recent_readings(animal_id)
+        readings = _fetch_recent_readings(animal_id, live_only=live_only)
     except Exception as exc:
         logger.exception("Could not fetch sensor readings for %s: %s", animal_id, exc)
         readings = pd.DataFrame()
@@ -84,6 +88,26 @@ def _save_prediction(animal_id: str, prediction: dict) -> None:
     supabase.table("predictions").insert(payload).execute()
 
 
+def process_live_risk_alerts(animal_ids: list[str]) -> None:
+    """Recompute each cow after live ingestion and notify on elevated risk."""
+    from app.services.whatsapp_service import send_risk_alerts
+
+    for animal_id in sorted(set(animal_ids)):
+        try:
+            prediction = _compute_prediction(animal_id, live_only=True)
+            if prediction.get("data_source") != "live":
+                continue
+            _save_prediction(animal_id, prediction)
+            category = str(prediction.get("category") or "").upper()
+            if category in {"HIGH", "MODERATE"}:
+                create_elevated_risk_alert(animal_id, prediction)
+                send_risk_alerts(animal_id, prediction)
+        except Exception as exc:
+            # Notification failures must never make the hardware retry a batch
+            # whose readings were already stored.
+            logger.exception("Live risk processing failed for %s: %s", animal_id, exc)
+
+
 @router.get("/predict/{animal_id}")
 async def preview_risk(animal_id: str):
     """Compute current risk without writing prediction or alert rows."""
@@ -101,8 +125,8 @@ async def recompute_risk(animal_id: str):
         logger.exception("Could not save prediction for %s: %s", animal_id, exc)
         raise HTTPException(status_code=502, detail="Prediction was computed but could not be saved") from exc
 
-    if str(prediction.get("category", "")).upper() == "HIGH":
-        create_high_risk_alert(animal_id, prediction)
+    if str(prediction.get("category", "")).upper() in {"HIGH", "MODERATE"}:
+        create_elevated_risk_alert(animal_id, prediction)
 
     prediction["persisted"] = True
     return prediction

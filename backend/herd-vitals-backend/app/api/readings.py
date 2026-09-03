@@ -4,7 +4,7 @@ import logging
 import os
 from typing import Literal
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Header, HTTPException
 from pydantic import BaseModel, Field, model_validator
 
 from app.core.database import supabase
@@ -46,6 +46,7 @@ def _verify_device_key(provided_key: str | None) -> None:
 @router.post("/readings", status_code=202)
 async def ingest_readings(
     batch: SensorReadingBatch,
+    background_tasks: BackgroundTasks,
     x_device_key: str | None = Header(default=None),
 ):
     """Validate and store a bounded batch of device sensor readings."""
@@ -76,11 +77,24 @@ async def ingest_readings(
         ]
         response = supabase.table("sensor_readings").insert(payload).execute()
         stored = response.data or []
+        live_animal_ids = sorted(
+            {
+                reading.animal_id
+                for reading in batch.readings
+                if not reading.is_simulated
+            }
+        )
+        if live_animal_ids:
+            # Import here to keep API modules independently importable in tests.
+            from app.api.predictions import process_live_risk_alerts
+
+            background_tasks.add_task(process_live_risk_alerts, live_animal_ids)
         return {
             "status": "accepted",
             "accepted": len(stored) or len(payload),
             "device_ids": sorted({reading.device_id for reading in batch.readings}),
             "authentication": "device_key" if os.getenv("DEVICE_INGESTION_KEY") else "disabled",
+            "risk_checks_scheduled": len(live_animal_ids),
         }
     except HTTPException:
         raise

@@ -15,7 +15,7 @@ import { SensorReading } from '../types';
 import { useTranslation } from 'react-i18next';
 
 const POLL_INTERVAL_MS = 5_000;
-const ONLINE_WINDOW_MS = 15 * 60 * 1_000;
+const ONLINE_WINDOW_MS = 20_000;
 
 interface LatestAnimalReadings {
   key: string;

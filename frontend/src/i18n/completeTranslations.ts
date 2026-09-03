@@ -28,8 +28,9 @@ const en = {
   },
   alertsPage: {
     subtitle: 'Manage system alerts and veterinary notifications', allAlerts: 'All Alerts', noAlerts: 'No alerts found',
-    filterClear: 'Everything looks good for this filter.', resolveError: 'Could not resolve the alert', markResolved: 'Mark Resolved',
-    highRiskMessage: '{{tag}} was classified as high risk ({{risk}}% prototype signal). Inspect the animal and confirm clinically.', mastitisDetected: 'Mastitis risk detected.',
+    filterClear: 'Everything looks good for this filter.', loadError: 'Could not refresh alerts', resolveError: 'Could not resolve the alert', markResolved: 'Mark Resolved',
+    elevatedRiskMessage: '{{tag}} was classified as {{level}} risk ({{risk}}% prototype signal).', mastitisDetected: 'Mastitis risk detected.',
+    precautions: 'Precautions', careRequired: 'Care required', clinicalDisclaimer: 'This risk signal is not a diagnosis. Confirm it clinically before treatment.',
   },
   gisPage: {
     subtitle: 'Geospatial cluster analysis of herd risk levels', clusterAnalysis: 'Cluster Analysis', clusterName: 'Cluster Name', riskLevel: 'Risk Level',
@@ -122,8 +123,9 @@ const hi = {
   },
   alertsPage: {
     subtitle: 'सिस्टम चेतावनियों और पशु-चिकित्सा सूचनाओं का प्रबंधन करें', allAlerts: 'सभी चेतावनियाँ', noAlerts: 'कोई चेतावनी नहीं मिली',
-    filterClear: 'इस फ़िल्टर में सब कुछ ठीक है।', resolveError: 'चेतावनी का समाधान नहीं किया जा सका', markResolved: 'समाधान हुआ चिह्नित करें',
-    highRiskMessage: '{{tag}} को उच्च जोखिम वाला माना गया ({{risk}}% प्रोटोटाइप संकेत)। पशु की जाँच करें और चिकित्सकीय पुष्टि करें।', mastitisDetected: 'मैस्टाइटिस का जोखिम पाया गया।',
+    filterClear: 'इस फ़िल्टर में सब कुछ ठीक है।', loadError: 'चेतावनियाँ ताज़ा नहीं हो सकीं', resolveError: 'चेतावनी का समाधान नहीं किया जा सका', markResolved: 'समाधान हुआ चिह्नित करें',
+    elevatedRiskMessage: '{{tag}} को {{level}} जोखिम वाला माना गया ({{risk}}% प्रोटोटाइप संकेत)।', mastitisDetected: 'मैस्टाइटिस का जोखिम पाया गया।',
+    precautions: 'सावधानियाँ', careRequired: 'आवश्यक देखभाल', clinicalDisclaimer: 'यह जोखिम संकेत निदान नहीं है। उपचार से पहले चिकित्सकीय पुष्टि करें।',
   },
   gisPage: {
     subtitle: 'झुंड के जोखिम स्तरों का भू-स्थानिक समूह विश्लेषण', clusterAnalysis: 'समूह विश्लेषण', clusterName: 'समूह का नाम', riskLevel: 'जोखिम स्तर',
@@ -214,8 +216,9 @@ const kn = {
   },
   alertsPage: {
     subtitle: 'ವ್ಯವಸ್ಥೆಯ ಎಚ್ಚರಿಕೆಗಳು ಮತ್ತು ಪಶುವೈದ್ಯಕೀಯ ಅಧಿಸೂಚನೆಗಳನ್ನು ನಿರ್ವಹಿಸಿ', allAlerts: 'ಎಲ್ಲ ಎಚ್ಚರಿಕೆಗಳು', noAlerts: 'ಯಾವುದೇ ಎಚ್ಚರಿಕೆಗಳು ಕಂಡುಬಂದಿಲ್ಲ',
-    filterClear: 'ಈ ಶೋಧಕದಲ್ಲಿ ಎಲ್ಲವೂ ಸರಿಯಾಗಿದೆ.', resolveError: 'ಎಚ್ಚರಿಕೆಯನ್ನು ಬಗೆಹರಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ', markResolved: 'ಬಗೆಹರಿಸಲಾಗಿದೆ ಎಂದು ಗುರುತಿಸಿ',
-    highRiskMessage: '{{tag}} ಅನ್ನು ಹೆಚ್ಚಿನ ಅಪಾಯ ಎಂದು ವರ್ಗೀಕರಿಸಲಾಗಿದೆ ({{risk}}% ಮಾದರಿ ಸೂಚನೆ). ಪ್ರಾಣಿಯನ್ನು ಪರಿಶೀಲಿಸಿ ವೈದ್ಯಕೀಯವಾಗಿ ದೃಢೀಕರಿಸಿ.', mastitisDetected: 'ಮಾಸ್ಟೈಟಿಸ್ ಅಪಾಯ ಪತ್ತೆಯಾಗಿದೆ.',
+    filterClear: 'ಈ ಶೋಧಕದಲ್ಲಿ ಎಲ್ಲವೂ ಸರಿಯಾಗಿದೆ.', loadError: 'ಎಚ್ಚರಿಕೆಗಳನ್ನು ನವೀಕರಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ', resolveError: 'ಎಚ್ಚರಿಕೆಯನ್ನು ಬಗೆಹರಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ', markResolved: 'ಬಗೆಹರಿಸಲಾಗಿದೆ ಎಂದು ಗುರುತಿಸಿ',
+    elevatedRiskMessage: '{{tag}} ಅನ್ನು {{level}} ಅಪಾಯ ಎಂದು ವರ್ಗೀಕರಿಸಲಾಗಿದೆ ({{risk}}% ಮಾದರಿ ಸೂಚನೆ).', mastitisDetected: 'ಮಾಸ್ಟೈಟಿಸ್ ಅಪಾಯ ಪತ್ತೆಯಾಗಿದೆ.',
+    precautions: 'ಮುನ್ನೆಚ್ಚರಿಕೆಗಳು', careRequired: 'ಅಗತ್ಯ ಆರೈಕೆ', clinicalDisclaimer: 'ಈ ಅಪಾಯ ಸೂಚನೆ ರೋಗನಿರ್ಣಯವಲ್ಲ. ಚಿಕಿತ್ಸೆಗೆ ಮೊದಲು ವೈದ್ಯಕೀಯವಾಗಿ ದೃಢೀಕರಿಸಿ.',
   },
   gisPage: {
     subtitle: 'ಹಿಂಡಿನ ಅಪಾಯ ಮಟ್ಟಗಳ ಭೌಗೋಳಿಕ ಗುಂಪು ವಿಶ್ಲೇಷಣೆ', clusterAnalysis: 'ಗುಂಪು ವಿಶ್ಲೇಷಣೆ', clusterName: 'ಗುಂಪಿನ ಹೆಸರು', riskLevel: 'ಅಪಾಯ ಮಟ್ಟ',
