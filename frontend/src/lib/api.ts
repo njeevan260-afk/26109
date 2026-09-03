@@ -148,6 +148,8 @@ export const fetchHardwareStatus = async (): Promise<HardwareStatus | undefined>
 };
 
 export interface DashboardSummary {
+  generated_at: string;
+  history_through: string;
   total_cows: number;
   high_risk_7day: number;
   moderate_high_14day: number;
@@ -163,6 +165,7 @@ export interface DashboardSummary {
   risk_history: {
     prediction_date: string;
     risk_7day: number;
+    is_current_snapshot: boolean;
   }[];
 }
 export const fetchDashboardSummary =

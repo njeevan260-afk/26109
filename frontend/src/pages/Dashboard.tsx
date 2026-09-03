@@ -42,7 +42,7 @@ import {
   HardwareStatus,
 } from "../types";
 
-const HARDWARE_STATUS_POLL_INTERVAL_MS = 30_000;
+const DASHBOARD_POLL_INTERVAL_MS = 30_000;
 
 /* =========================================================
    TYPES
@@ -54,9 +54,12 @@ interface DashboardHistoryItem {
   risk?: number;
   risk_7day?: number;
   value?: number;
+  is_current_snapshot?: boolean;
 }
 
 interface DashboardSummary {
+  generated_at?: string;
+  history_through?: string;
   total_cows?: number;
   total_animals?: number;
   herd_size?: number;
@@ -227,12 +230,13 @@ export default function Dashboard() {
   ======================================================= */
 
   async function loadDashboard(
-    isRefresh = false
+    isRefresh = false,
+    isBackgroundRefresh = false,
   ) {
     try {
       if (isRefresh) {
         setRefreshing(true);
-      } else {
+      } else if (!isBackgroundRefresh) {
         setLoading(true);
       }
 
@@ -350,21 +354,12 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadDashboard();
-  }, []);
 
-  useEffect(() => {
-    let active = true;
-    const intervalId = window.setInterval(async () => {
-      const latestStatus = await fetchHardwareStatus();
-      if (active && latestStatus) {
-        setHardware(latestStatus);
-      }
-    }, HARDWARE_STATUS_POLL_INTERVAL_MS);
+    const intervalId = window.setInterval(() => {
+      void loadDashboard(false, true);
+    }, DASHBOARD_POLL_INTERVAL_MS);
 
-    return () => {
-      active = false;
-      window.clearInterval(intervalId);
-    };
+    return () => window.clearInterval(intervalId);
   }, []);
 
   /* =======================================================
@@ -545,6 +540,9 @@ export default function Dashboard() {
               normalizeRiskValue(
                 numericRisk
               ),
+
+            isCurrentSnapshot:
+              item.is_current_snapshot === true,
           };
         }
       );
@@ -812,9 +810,11 @@ export default function Dashboard() {
 
             <div className="flex items-center gap-2 text-xs text-brand-text-secondary">
 
-              <span className="w-2 h-2 rounded-full bg-brand-red" />
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
 
-              {t("common.prototypeSignal")}
+              Live · {data.generated_at
+                ? formatDateTime(data.generated_at, locale)
+                : t("common.prototypeSignal")}
 
             </div>
 

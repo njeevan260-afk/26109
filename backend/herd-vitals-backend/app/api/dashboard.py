@@ -1,11 +1,68 @@
 from collections import Counter
+from datetime import date, datetime, timezone
 import logging
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, HTTPException
 from app.core.database import supabase
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+def _normalize_risk(value) -> float:
+    try:
+        risk = float(value or 0)
+    except (TypeError, ValueError):
+        return 0.0
+    return risk / 100 if risk > 1 else risk
+
+
+def _build_risk_history(predictions, latest_predictions, today=None):
+    """Build observed history and finish it with the current herd snapshot."""
+    today = today or date.today()
+    latest_by_animal_date = {}
+    for prediction in predictions:
+        prediction_date = str(prediction.get("prediction_date") or "")[:10]
+        animal_id = prediction.get("animal_id")
+        if not prediction_date or not animal_id:
+            continue
+        latest_by_animal_date.setdefault((prediction_date, animal_id), prediction)
+
+    history_counter = {}
+    for (prediction_date, _animal_id), prediction in latest_by_animal_date.items():
+        history_counter.setdefault(prediction_date, []).append(
+            _normalize_risk(prediction.get("risk_7day"))
+        )
+
+    risk_history = [
+        {
+            "prediction_date": prediction_date,
+            "risk_7day": round(sum(values) / len(values), 4),
+            "is_current_snapshot": False,
+        }
+        for prediction_date, values in sorted(history_counter.items())
+        if values
+    ]
+
+    today_string = today.isoformat()
+    risk_history = [
+        item for item in risk_history if item["prediction_date"] < today_string
+    ]
+    if latest_predictions:
+        current_values = [
+            _normalize_risk(prediction.get("risk_7day"))
+            for prediction in latest_predictions
+        ]
+        risk_history.append(
+            {
+                "prediction_date": today_string,
+                "risk_7day": round(sum(current_values) / len(current_values), 4),
+                "is_current_snapshot": True,
+            }
+        )
+
+    return sorted(risk_history, key=lambda item: item["prediction_date"])[-14:]
 
 
 @router.get("/dashboard/summary")
@@ -62,28 +119,8 @@ async def dashboard_summary():
     else:
         herd_risk_index = 0
 
-    latest_by_animal_date = {}
-    for prediction in predictions:
-        date = str(prediction.get("prediction_date") or "")[:10]
-        animal_id = prediction.get("animal_id")
-        if not date or not animal_id:
-            continue
-        latest_by_animal_date.setdefault((date, animal_id), prediction)
-
-    history_counter = {}
-    for (date, _animal_id), prediction in latest_by_animal_date.items():
-        history_counter.setdefault(date, []).append(float(prediction.get("risk_7day") or 0))
-
-    risk_history = []
-    for date, values in sorted(history_counter.items()):
-        avg_risk = sum(values) / len(values) if values else 0
-        if avg_risk > 1:
-            avg_risk = avg_risk / 100
-        risk_history.append({
-            "prediction_date": date,
-            "risk_7day": round(avg_risk, 4),
-        })
-    risk_history = risk_history[-14:]
+    today = datetime.now(ZoneInfo("Asia/Kolkata")).date()
+    risk_history = _build_risk_history(predictions, latest, today=today)
 
     return {
         "total_cows": total_cows,
@@ -92,6 +129,8 @@ async def dashboard_summary():
         "moderate_high": moderate_high,
         "moderate_high_14day": moderate_high,
         "herd_risk_index": round(max(0, min(100, herd_risk_index)), 1),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "history_through": today.isoformat(),
         "risk_distribution": {
             "HIGH": high_risk,
             "MODERATE": moderate_risk,
