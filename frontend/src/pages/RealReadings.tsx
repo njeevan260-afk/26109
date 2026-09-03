@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 
 const POLL_INTERVAL_MS = 5_000;
 const ONLINE_WINDOW_MS = 20_000;
+type ReadingRiskCategory = 'NONE' | 'LOW' | 'MODERATE' | 'HIGH';
 
 interface LatestAnimalReadings {
   key: string;
@@ -37,6 +38,25 @@ function formatReadingTime(value: string, locale: string, unknownLabel: string) 
 function isOnline(readingTime: string) {
   const timestamp = new Date(readingTime).getTime();
   return Number.isFinite(timestamp) && Date.now() - timestamp <= ONLINE_WINDOW_MS;
+}
+
+function readingRiskLevel(reading: SensorReading): ReadingRiskCategory {
+  const backendRisk = (
+    reading as SensorReading & { risk_level?: ReadingRiskCategory }
+  ).risk_level;
+  if (backendRisk) return backendRisk;
+
+  if (reading.sensor_type === 'EC') {
+    if (reading.value > 6) return 'HIGH';
+    if (reading.value > 5) return 'MODERATE';
+    if (reading.value > 4.5) return 'LOW';
+  } else {
+    if (reading.value > 39.5) return 'HIGH';
+    if (reading.value > 39) return 'MODERATE';
+    if (reading.value > 38.5) return 'LOW';
+  }
+
+  return 'NONE';
 }
 
 export default function RealReadings() {
@@ -207,7 +227,7 @@ export default function RealReadings() {
                     <th className="px-5 py-3">{t('common.device')}</th>
                     <th className="px-5 py-3">{t('common.sensor')}</th>
                     <th className="px-5 py-3">{t('common.value')}</th>
-                    <th className="px-5 py-3">{t('common.quality')}</th>
+                    <th className="px-5 py-3">{t('realPage.risk', { defaultValue: 'Risk' })}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -218,7 +238,9 @@ export default function RealReadings() {
                       <td className="px-5 py-3">{reading.device_id || t('common.unknown')}</td>
                       <td className="px-5 py-3">{reading.sensor_type}</td>
                       <td className="whitespace-nowrap px-5 py-3 font-bold text-brand-navy">{reading.value.toFixed(2)} {reading.unit}</td>
-                      <td className="px-5 py-3">{reading.quality_flag || '—'}</td>
+                      <td className="px-5 py-3">
+                        <RiskBadge risk={readingRiskLevel(reading)} />
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -250,6 +272,25 @@ function SummaryCard({
       </div>
       <p className={`mt-3 font-bold text-brand-navy ${compact ? 'text-base' : 'text-2xl'}`}>{value}</p>
     </article>
+  );
+}
+
+function RiskBadge({ risk }: { risk: ReadingRiskCategory }) {
+  const { t } = useTranslation();
+  const styles: Record<ReadingRiskCategory, string> = {
+    NONE: 'bg-gray-100 text-gray-700',
+    LOW: 'bg-emerald-50 text-emerald-700',
+    MODERATE: 'bg-amber-50 text-amber-700',
+    HIGH: 'bg-red-50 text-red-700',
+  };
+  const label = risk === 'NONE'
+    ? t('realPage.noRisk', { defaultValue: 'No risk' })
+    : t(`common.${risk.toLowerCase()}`);
+
+  return (
+    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${styles[risk]}`}>
+      {label}
+    </span>
   );
 }
 

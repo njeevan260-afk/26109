@@ -7,6 +7,32 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
+def _reading_risk_level(sensor_type: str, value) -> str:
+    """Classify an individual reading using the model fallback thresholds."""
+    try:
+        numeric_value = float(value)
+    except (TypeError, ValueError):
+        return "NONE"
+
+    sensor_type = str(sensor_type or "").upper()
+    if sensor_type == "EC":
+        if numeric_value > 6.0:
+            return "HIGH"
+        if numeric_value > 5.0:
+            return "MODERATE"
+        if numeric_value > 4.5:
+            return "LOW"
+    elif sensor_type == "TEMP":
+        if numeric_value > 39.5:
+            return "HIGH"
+        if numeric_value > 39.0:
+            return "MODERATE"
+        if numeric_value > 38.5:
+            return "LOW"
+
+    return "NONE"
+
+
 @router.get("/sensors/real-readings")
 async def get_real_sensor_readings(
     limit: int = Query(500, ge=1, le=1000)
@@ -49,6 +75,9 @@ async def get_real_sensor_readings(
         return [
             {
                 **reading,
+                "risk_level": _reading_risk_level(
+                    reading.get("sensor_type"), reading.get("value")
+                ),
                 "tag_number": animals_by_id.get(
                     reading.get("animal_id"), {}
                 ).get("tag_number"),
