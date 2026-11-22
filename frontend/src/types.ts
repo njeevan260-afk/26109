@@ -178,3 +178,29 @@ export interface AdminRoleRequest {
 }
 
 export type AdminDecision = "APPROVE" | "REJECT";
+
+export type DoctorReportStatus =
+  | "submitted"
+  | "pending_review"
+  | "under_investigation"
+  | "resolved"
+  | "closed";
+
+export interface DoctorReport {
+  id: string;
+  farmer_id: string;
+  cow_id: string;
+  veterinarian_id: string;
+  description: string;
+  status: DoctorReportStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ActiveVeterinarian {
+  id: string;
+  display_name: string | null;
+  organization_name: string | null;
+  locality?: string | null;
+  created_at?: string;
+}

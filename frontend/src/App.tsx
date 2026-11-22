@@ -19,6 +19,8 @@ import HomePage from './pages/HomePage';
 import RealReadings from './pages/RealReadings';
 import ResetPassword from './pages/ResetPassword';
 import Profile from './pages/Profile';
+import ReportDoctor from './pages/ReportDoctor';
+import VeterinarianReports from './pages/VeterinarianReports';
 
 function App() {
   const { t } = useTranslation();
@@ -37,10 +39,12 @@ function App() {
             <Route element={<Layout />}>
               <Route path="portal/admin" element={<AdminDashboard />} />
               <Route path="portal/farmer" element={<Navigate to="/dashboard" replace />} />
-              <Route path="portal/veterinarian" element={<Navigate to="/dashboard" replace />} />
+              <Route path="portal/veterinarian" element={<VeterinarianReports />} />
+              <Route path="veterinarian/reports" element={<VeterinarianReports />} />
               <Route path="portal/cooperative" element={<Navigate to="/dashboard" replace />} />
               <Route path="portal/authority" element={<Navigate to="/dashboard" replace />} />
               <Route path="profile" element={<Profile />} />
+              <Route path="report-doctor" element={<ReportDoctor />} />
               <Route element={<RequirePermission permission="dashboard.read" />}>
                 <Route path="dashboard" element={<Dashboard />} />
                 <Route path="real-readings" element={<RealReadings />} />

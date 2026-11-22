@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Map as MapIcon, Bell, ClipboardPlus, Settings, UserRound, X } from 'lucide-react';
+import { LayoutDashboard, Users, Map as MapIcon, Bell, ClipboardPlus, Settings, UserRound, X, Stethoscope } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../../auth/AuthContext';
 import { useTranslation } from 'react-i18next';
@@ -21,6 +21,8 @@ export default function Sidebar({ isMobileOpen, onClose }: { isMobileOpen?: bool
   const navItems = [
     { name: identity?.role === 'ADMIN' ? t('nav.adminControl') : t('dashboard'), path: getDashboardPath(identity), icon: LayoutDashboard, visible: true },
     { name: t('herdManagement'), path: '/herd', icon: Users, visible: hasPermission('animals.read') },
+    { name: 'Report to a Doctor', path: '/report-doctor', icon: Stethoscope, visible: identity?.role === 'DAIRY_FARMER' },
+    { name: 'Assigned Reports', path: '/veterinarian/reports', icon: Stethoscope, visible: identity?.role === 'VETERINARIAN' },
     { name: t('analyticsGIS'), path: '/analytics', icon: MapIcon, visible: hasPermission('clusters.read') },
     { name: t('alertsCenter'), path: '/alerts', icon: Bell, visible: hasPermission('alerts.read') },
     { name: t('clinicalEvents'), path: '/events', icon: ClipboardPlus, visible: hasPermission('events.read') },
